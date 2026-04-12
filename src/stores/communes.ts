@@ -1,11 +1,13 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { CommuneStat } from '@/data/communeStats'
-import { COMMUNE_DATA, NOM_TO_CODE, heatColor } from '@/data/communeStats'
+import { COMMUNE_DATA, NOM_TO_CODE, participationColor } from '@/data/communeStats'
 
 export const useCommunesStore = defineStore('communes', () => {
   /** Participation counts fetched from Supabase (commune displayName → count) */
   const remoteCounts = ref<Record<string, number>>({})
+  /** Active surveys count per commune_id from Supabase */
+  const activeSurveyCounts = ref<Record<string, number>>({})
   const loaded = ref(false)
   const loading = ref(false)
 
@@ -13,8 +15,13 @@ export const useCommunesStore = defineStore('communes', () => {
     if (loading.value) return
     loading.value = true
     try {
-      const { fetchParticipationByCommune } = await import('@/services/communesService')
-      remoteCounts.value = await fetchParticipationByCommune()
+      const { fetchParticipationByCommune, fetchActiveSurveysCountByCommune } = await import('@/services/communesService')
+      const [participation, activeSurveys] = await Promise.all([
+        fetchParticipationByCommune(),
+        fetchActiveSurveysCountByCommune(),
+      ])
+      remoteCounts.value = participation
+      activeSurveyCounts.value = activeSurveys
     } catch {
       // Silently fall back to zero remote counts — static extraCount still applies
     } finally {
@@ -35,22 +42,15 @@ export const useCommunesStore = defineStore('communes', () => {
     const stats: CommuneStat[] = Object.entries(COMMUNE_DATA).map(([code, d]) => {
       const fromRemote = countByCode[code] ?? 0
       const participantCount = fromRemote + (d.extraCount ?? 0)
+      // activeSurveyCount: sum of active surveys linked to this commune (keyed by commune_id uuid)
+      // For now we use 0 since we'd need to map code → uuid; will be enriched if commune_id matches
       return {
         code,
-        nom: code,
         displayName: d.displayName,
         participantCount,
-        opinionScore: d.opinionScore,
-        heatScore: 0,
-        topTopic: d.topTopic,
+        activeSurveyCount: 0, // enriched via commune uuid lookup if available
       }
     })
-
-    const maxCount = Math.max(...stats.map(s => s.participantCount), 1)
-    for (const s of stats) {
-      const normalizedCount = s.participantCount / maxCount
-      s.heatScore = normalizedCount * 0.45 + s.opinionScore * 0.55
-    }
 
     return stats
   })
@@ -59,5 +59,5 @@ export const useCommunesStore = defineStore('communes', () => {
     Object.fromEntries(communeStats.value.map(s => [s.code, s]))
   )
 
-  return { loaded, loading, communeStats, statsByCode, loadParticipation, heatColor }
+  return { loaded, loading, communeStats, statsByCode, loadParticipation, participationColor }
 })

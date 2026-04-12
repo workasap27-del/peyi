@@ -22,6 +22,7 @@ export const useSurveysStore = defineStore('surveys', () => {
     error.value = null
     try {
       const { supabase } = await import('@/services/supabase')
+      // Note: scope global/local géré via commune_id (null = global Guadeloupe, non-null = commune spécifique)
       const { data, error: err } = await supabase
         .from('surveys')
         .select('*, commune:communes(id, name, code_insee, department, lat, lng)')

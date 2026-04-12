@@ -3,10 +3,12 @@ import { onMounted, onUnmounted, ref, watch } from 'vue'
 import type { Map as LMap, GeoJSON, Layer } from 'leaflet'
 import type L from 'leaflet'
 type LeafletInstance = typeof L
-import { heatColor } from '@/data/communeStats'
+import { participationColor } from '@/data/communeStats'
 import type { CommuneStat } from '@/data/communeStats'
 import { useCommunesStore } from '@/stores/communes'
 import geojsonData from '@/data/communes-971.json'
+import GlobalStatsBar from './GlobalStatsBar.vue'
+import OnboardingTooltip from './OnboardingTooltip.vue'
 
 const communesStore = useCommunesStore()
 
@@ -59,10 +61,11 @@ function renderGeoLayer(L: LeafletInstance) {
   geoLayer = L.geoJSON(geojsonData as GeoJSON.FeatureCollection, {
     style: (feature) => {
       const stat = getStatForFeature(feature!)
-      const color = stat ? heatColor(stat.heatScore) : '#555'
+      const color = stat ? participationColor(stat.participantCount) : '#6b7280'
+      const opacity = stat && stat.participantCount >= 20 ? 0.55 : 0.3
       return {
         fillColor: color,
-        fillOpacity: stat ? 0.38 + stat.heatScore * 0.22 : 0.2,
+        fillOpacity: opacity,
         color: 'rgba(255,255,255,0.55)',
         weight: 1.2,
         opacity: 1,
@@ -72,7 +75,7 @@ function renderGeoLayer(L: LeafletInstance) {
       const stat = getStatForFeature(feature)
       if (!stat) return
 
-      const color = heatColor(stat.heatScore)
+      const color = participationColor(stat.participantCount)
 
       layer.bindTooltip(`
         <div style="font-family:Inter,sans-serif;min-width:150px;">
@@ -81,7 +84,7 @@ function renderGeoLayer(L: LeafletInstance) {
             👥 ${stat.participantCount} répondants
           </div>
           <div style="font-size:11px;font-weight:600;color:${color};">
-            🔥 ${stat.topTopic}
+            📊 ${stat.activeSurveyCount} sondage${stat.activeSurveyCount !== 1 ? 's' : ''} actif${stat.activeSurveyCount !== 1 ? 's' : ''}
           </div>
           <div style="font-size:10px;color:#999;margin-top:4px;">
             Cliquez pour participer →
@@ -96,7 +99,7 @@ function renderGeoLayer(L: LeafletInstance) {
 
       layer.on('mouseover', () => {
         ;(layer as any).setStyle({
-          fillOpacity: Math.min(0.75, 0.38 + stat.heatScore * 0.22 + 0.25),
+          fillOpacity: 0.75,
           weight: 2.5,
           color: 'rgba(255,255,255,0.9)',
         })
@@ -122,7 +125,7 @@ function renderGeoLayer(L: LeafletInstance) {
     if (!stat) continue
 
     const [lat, lng] = centroid(feature.geometry)
-    const color = heatColor(stat.heatScore)
+    const color = participationColor(stat.participantCount)
     const r = 3 + (stat.participantCount / maxCount) * 12
 
     L.circleMarker([lat, lng], {
@@ -210,6 +213,8 @@ defineExpose({ resetSelection })
 
 <template>
   <div class="relative w-full h-full caribbean-map">
+    <GlobalStatsBar />
+
     <div ref="mapEl" class="w-full h-full" />
 
     <!-- Éléments décoratifs SVG Caraïbes (positionnés dans la mer) -->
@@ -258,24 +263,26 @@ defineExpose({ resetSelection })
     </div>
 
     <!-- Légende -->
-    <div class="absolute top-4 right-4 bg-white/90 backdrop-blur-sm rounded-xl p-3 z-[1000] text-xs space-y-1.5 pointer-events-none shadow-lg border border-white/60">
-      <p class="font-semibold text-gray-600 text-[10px] uppercase tracking-wider mb-2">Opinion publique</p>
+    <div class="absolute top-10 right-4 bg-black/75 backdrop-blur-sm rounded-xl p-3 z-[1000] text-white text-xs space-y-1.5 pointer-events-none">
+      <p class="font-semibold text-gray-300 text-[10px] uppercase tracking-wider mb-2">Participation</p>
       <div class="flex items-center gap-2">
         <div class="w-3 h-3 rounded-full bg-green-500 shrink-0" />
-        <span class="text-gray-600">Satisfait / calme</span>
+        <span class="text-gray-300">Forte (100+ répondants)</span>
       </div>
       <div class="flex items-center gap-2">
         <div class="w-3 h-3 rounded-full bg-amber-500 shrink-0" />
-        <span class="text-gray-600">Avis mitigés</span>
+        <span class="text-gray-300">Modérée (20–99)</span>
       </div>
       <div class="flex items-center gap-2">
-        <div class="w-3 h-3 rounded-full bg-red-500 shrink-0" />
-        <span class="text-gray-600">Situation critique</span>
+        <div class="w-3 h-3 rounded-full bg-gray-500 shrink-0" />
+        <span class="text-gray-300">Faible ou inactif</span>
       </div>
-      <div class="border-t border-gray-200 my-1.5" />
-      <p class="text-gray-400 text-[10px]">• taille = nb répondants</p>
-      <p class="text-gray-400 text-[10px]">Cliquez une commune</p>
+      <div class="border-t border-white/10 my-1.5" />
+      <p class="text-gray-500 text-[10px]">• taille = nb répondants</p>
+      <p class="text-gray-400 text-[10px]">Cliquez sur votre commune</p>
     </div>
+
+    <OnboardingTooltip />
   </div>
 </template>
 

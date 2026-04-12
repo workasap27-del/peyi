@@ -14,9 +14,6 @@ const router = useRouter()
         Retour
       </button>
 
-      <div class="text-center mb-2">
-        <span class="text-4xl">🗺️</span>
-      </div>
       <h1 class="text-2xl font-bold text-center">Comment ça marche ?</h1>
       <p class="text-gray-400 text-center text-sm mt-2">
         Péyi connecte les citoyens guadeloupéens à leurs élus grâce à la donnée d'opinion en temps réel.
@@ -27,82 +24,67 @@ const router = useRouter()
     <div class="px-5 space-y-5 pb-10">
 
       <!-- Step 1 -->
-      <div class="bg-gray-900 rounded-2xl p-6 border border-gray-800">
+      <div class="bg-gray-900 rounded-2xl p-6 border border-gray-800 step-card" style="animation-delay: 0s;">
         <div class="flex items-start gap-4">
           <div class="w-12 h-12 bg-emerald-500/20 rounded-2xl flex items-center justify-center shrink-0">
-            <span class="text-2xl">🗺️</span>
+            <!-- Icône carte avec curseur -->
+            <svg class="w-6 h-6 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+              <circle cx="15" cy="13" r="2" fill="currentColor" opacity="0.6" />
+            </svg>
           </div>
           <div class="flex-1">
-            <div class="flex items-center gap-2 mb-1">
-              <span class="text-xs font-bold text-emerald-400 uppercase tracking-wider">Étape 1</span>
-            </div>
-            <h2 class="text-lg font-bold mb-2">La carte montre l'opinion de ta commune</h2>
+            <span class="text-xs font-bold text-emerald-400 uppercase tracking-wider">Étape 1</span>
+            <h2 class="text-lg font-bold mb-2 mt-1">Explore ta commune</h2>
             <p class="text-gray-400 text-sm leading-relaxed">
-              Chaque commune de Guadeloupe s'affiche avec une couleur qui reflète l'état d'esprit de ses habitants : <span class="text-emerald-400 font-medium">vert = calme</span>, <span class="text-amber-400 font-medium">orange = préoccupations</span>, <span class="text-red-400 font-medium">rouge = situation critique</span>.
-            </p>
-            <p class="text-gray-500 text-sm mt-2 leading-relaxed">
-              Les bulles proportionnelles montrent le nombre de citoyens ayant participé. Plus la commune est active, plus ses données pèsent dans les rapports transmis aux collectivités.
+              La carte montre en temps réel la participation citoyenne dans chaque commune de Guadeloupe.
             </p>
           </div>
         </div>
       </div>
 
       <!-- Step 2 -->
-      <div class="bg-gray-900 rounded-2xl p-6 border border-gray-800">
+      <div class="bg-gray-900 rounded-2xl p-6 border border-gray-800 step-card" style="animation-delay: 0.15s;">
         <div class="flex items-start gap-4">
           <div class="w-12 h-12 bg-blue-500/20 rounded-2xl flex items-center justify-center shrink-0">
-            <span class="text-2xl">📲</span>
+            <!-- Icône bulle dialogue avec check -->
+            <svg class="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4" />
+            </svg>
           </div>
           <div class="flex-1">
-            <div class="flex items-center gap-2 mb-1">
-              <span class="text-xs font-bold text-blue-400 uppercase tracking-wider">Étape 2</span>
-            </div>
-            <h2 class="text-lg font-bold mb-2">Tu réponds en 2 minutes, une question à la fois</h2>
+            <span class="text-xs font-bold text-blue-400 uppercase tracking-wider">Étape 2</span>
+            <h2 class="text-lg font-bold mb-2 mt-1">Réponds en 2 minutes</h2>
             <p class="text-gray-400 text-sm leading-relaxed">
-              L'expérience sondage est pensée comme des Stories : plein écran, une question par slide, tu swipes ou tu tapes. Pas de formulaire interminable.
+              Un sondage, quelques questions simples, ton avis compte autant que celui du voisin.
             </p>
-            <div class="mt-3 space-y-2">
-              <div class="flex items-center gap-2 text-sm text-gray-400">
-                <span class="text-emerald-400">✓</span> Anonymat garanti — ton numéro est haché
-              </div>
-              <div class="flex items-center gap-2 text-sm text-gray-400">
-                <span class="text-emerald-400">✓</span> Un seul vote par sondage par personne
-              </div>
-              <div class="flex items-center gap-2 text-sm text-gray-400">
-                <span class="text-emerald-400">✓</span> Résultats visibles immédiatement après
-              </div>
-            </div>
           </div>
         </div>
       </div>
 
       <!-- Step 3 -->
-      <div class="bg-gray-900 rounded-2xl p-6 border border-gray-800">
+      <div class="bg-gray-900 rounded-2xl p-6 border border-gray-800 step-card" style="animation-delay: 0.3s;">
         <div class="flex items-start gap-4">
           <div class="w-12 h-12 bg-amber-500/20 rounded-2xl flex items-center justify-center shrink-0">
-            <span class="text-2xl">🏛️</span>
+            <!-- Icône graphique avec étoile -->
+            <svg class="w-6 h-6 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                d="M19.5 6.5l-1 2.5-2.5.5 1.8 1.7-.4 2.5 2.1-1.2 2.1 1.2-.4-2.5 1.8-1.7-2.5-.5z" fill="currentColor" opacity="0.5" />
+            </svg>
           </div>
           <div class="flex-1">
-            <div class="flex items-center gap-2 mb-1">
-              <span class="text-xs font-bold text-amber-400 uppercase tracking-wider">Étape 3</span>
-            </div>
-            <h2 class="text-lg font-bold mb-2">Tes élus voient les résultats et agissent</h2>
+            <span class="text-xs font-bold text-amber-400 uppercase tracking-wider">Étape 3</span>
+            <h2 class="text-lg font-bold mb-2 mt-1">Tes élus voient les résultats</h2>
             <p class="text-gray-400 text-sm leading-relaxed">
-              Péyi vend des tableaux de bord d'opinion segmentés aux collectivités locales — communes, Région, Département. Chaque élu peut filtrer par âge, genre, quartier et suivre l'évolution en temps réel.
-            </p>
-            <p class="text-gray-500 text-sm mt-2 leading-relaxed">
-              Plus tu participes, plus ta voix compte dans les décisions qui concernent ton quotidien : eau, routes, emploi, culture.
+              Les données sont transmises aux collectivités pour éclairer leurs décisions.
             </p>
           </div>
         </div>
-      </div>
-
-      <!-- Business model transparency -->
-      <div class="bg-gray-900/50 rounded-2xl p-5 border border-gray-800/50">
-        <h3 class="text-sm font-semibold text-gray-300 mb-2">Pourquoi c'est gratuit pour toi ?</h3>
-        <p class="text-xs text-gray-500 leading-relaxed">
-          Péyi est financé par les collectivités qui achètent l'accès aux données agrégées et anonymisées. Tu ne pais rien. Tes données personnelles ne sont jamais revendues à des tiers privés.
-        </p>
       </div>
 
       <!-- CTA -->
@@ -115,3 +97,21 @@ const router = useRouter()
     </div>
   </div>
 </template>
+
+<style scoped>
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.step-card {
+  animation: slideUp 0.5s ease forwards;
+  opacity: 0;
+}
+</style>

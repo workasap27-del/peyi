@@ -45,19 +45,6 @@ const router = createRouter({
       props: true,
     },
 
-    // ── Signalements (secondaire) ────────────────────────────────────────────
-    {
-      path: '/signalements',
-      name: 'reports-map',
-      component: () => import('@/views/reports/ReportsMapView.vue'),
-    },
-    {
-      path: '/signalements/:id',
-      name: 'report-detail',
-      component: () => import('@/views/reports/ReportDetailView.vue'),
-      props: true,
-    },
-
     // ── Pages informatives ───────────────────────────────────────────────────
     {
       path: '/comment-ca-marche',

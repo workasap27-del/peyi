@@ -44,7 +44,7 @@ const tabs = [
   <Transition name="menu">
     <div
       v-if="menuOpen"
-      class="fixed inset-x-0 bottom-[57px] z-30 bg-white rounded-t-2xl shadow-2xl border-t border-gray-100 px-4 py-5"
+      class="fixed inset-x-0 bottom-[57px] z-[9000] bg-white rounded-t-2xl shadow-2xl border-t border-gray-100 px-4 py-5 pointer-events-auto"
       style="max-height: 50vh;"
     >
       <div class="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-5" />
@@ -60,17 +60,6 @@ const tabs = [
           <div>
             <p class="font-medium text-sm">Actualités</p>
             <p class="text-xs text-gray-400">News hyperlocales par commune</p>
-          </div>
-        </RouterLink>
-        <RouterLink
-          to="/signalements"
-          class="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-gray-50 transition"
-          @click="menuOpen = false"
-        >
-          <span class="text-2xl">📍</span>
-          <div>
-            <p class="font-medium text-sm">Signalements</p>
-            <p class="text-xs text-gray-400">Carte des problèmes citoyens</p>
           </div>
         </RouterLink>
         <RouterLink
@@ -103,7 +92,7 @@ const tabs = [
   <Transition name="fade">
     <div
       v-if="menuOpen"
-      class="fixed inset-0 z-20 bg-black/20"
+      class="fixed inset-0 z-[8999] bg-black/20"
       @click="menuOpen = false"
     />
   </Transition>

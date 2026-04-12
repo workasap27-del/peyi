@@ -17,3 +17,20 @@ export async function fetchParticipationByCommune(): Promise<Record<string, numb
   }
   return counts
 }
+
+/** Retourne le nombre de sondages actifs par commune_id */
+export async function fetchActiveSurveysCountByCommune(): Promise<Record<string, number>> {
+  const { data, error } = await supabase
+    .from('surveys')
+    .select('commune_id')
+    .eq('is_active', true)
+
+  if (error) throw error
+
+  const counts: Record<string, number> = {}
+  for (const row of data ?? []) {
+    const id = row.commune_id as string | null
+    if (id) counts[id] = (counts[id] ?? 0) + 1
+  }
+  return counts
+}

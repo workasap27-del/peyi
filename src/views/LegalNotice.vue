@@ -16,62 +16,69 @@ const router = useRouter()
       <h1 class="text-2xl font-bold text-gray-900 mb-1">Mentions légales</h1>
       <p class="text-sm text-gray-400 mb-8">Dernière mise à jour : avril 2026</p>
 
-      <div class="space-y-8 text-sm text-gray-700 leading-relaxed">
+      <div class="space-y-8 text-sm text-gray-700 leading-relaxed divide-y divide-gray-100">
 
-        <section>
-          <h2 class="font-bold text-gray-900 text-base mb-3">1. Éditeur responsable</h2>
+        <section class="pt-4 first:pt-0">
+          <h2 class="font-bold text-gray-900 text-base mb-3">1. Éditeur</h2>
           <p><strong>Nom :</strong> Mickael BLANCHEDENT</p>
-          <p class="mt-1"><strong>Projet :</strong> Péyi — Plateforme Civic Tech Guadeloupe</p>
-          <p class="mt-1"><strong>Contact :</strong> contact@peyi.fr</p>
+          <p class="mt-1"><strong>Adresse :</strong> Évreux (27000), France</p>
+          <p class="mt-1"><strong>Contact :</strong> <a href="mailto:contact@peyi.fr" class="text-emerald-600 underline">contact@peyi.fr</a></p>
         </section>
 
-        <section>
-          <h2 class="font-bold text-gray-900 text-base mb-3">2. Hébergeur</h2>
+        <section class="pt-6">
+          <h2 class="font-bold text-gray-900 text-base mb-3">2. Hébergement</h2>
           <p><strong>Vercel Inc.</strong></p>
-          <p class="mt-1">340 Pine Street, Suite 701</p>
-          <p>San Francisco, CA 94104, États-Unis</p>
-          <p class="mt-1"><a href="https://vercel.com" class="text-emerald-600 underline">vercel.com</a></p>
+          <p class="mt-1">340 Pine Street, Suite 900</p>
+          <p>San Francisco, CA 94104, USA</p>
+          <p class="mt-1"><a href="https://vercel.com" target="_blank" rel="noopener" class="text-emerald-600 underline">vercel.com</a></p>
         </section>
 
-        <section>
-          <h2 class="font-bold text-gray-900 text-base mb-3">3. Données collectées</h2>
-          <div class="space-y-3">
+        <section class="pt-6">
+          <h2 class="font-bold text-gray-900 text-base mb-3">3. Données personnelles</h2>
+          <p><strong>Responsable du traitement :</strong> Mickael BLANCHEDENT</p>
+
+          <div class="mt-4 space-y-3">
             <div class="bg-gray-50 rounded-xl p-4">
-              <p class="font-semibold text-gray-800">Numéro de téléphone (haché)</p>
-              <p class="text-gray-500 mt-1">Ton numéro est transformé en empreinte numérique irréversible. Il n'est jamais stocké en clair ni transmis à des tiers. Il sert uniquement à garantir l'unicité de ton vote.</p>
+              <p class="font-semibold text-gray-800">Données collectées</p>
+              <ul class="text-gray-500 mt-1 space-y-1 list-disc list-inside text-xs">
+                <li>Identifiant anonyme local (stocké uniquement dans votre navigateur, non transmis au serveur)</li>
+                <li>Réponses anonymisées aux sondages</li>
+                <li>Démographie facultative : groupe d'âge, genre</li>
+                <li>Adresse IP traitée par les serveurs Vercel</li>
+              </ul>
             </div>
             <div class="bg-gray-50 rounded-xl p-4">
-              <p class="font-semibold text-gray-800">Réponses aux sondages (anonymisées)</p>
-              <p class="text-gray-500 mt-1">Tes réponses sont agrégées avec celles d'autres participants. Aucune réponse individuelle n'est accessible par les collectivités abonnées.</p>
+              <p class="font-semibold text-gray-800">Finalité</p>
+              <p class="text-gray-500 mt-1 text-xs">Amélioration des politiques publiques locales et recherche d'opinion citoyenne en Guadeloupe.</p>
             </div>
             <div class="bg-gray-50 rounded-xl p-4">
-              <p class="font-semibold text-gray-800">Données démographiques (facultatives)</p>
-              <p class="text-gray-500 mt-1">Groupe d'âge, commune de résidence, genre. Ces informations sont optionnelles et permettent des analyses segmentées. Elles ne permettent pas de t'identifier individuellement.</p>
+              <p class="font-semibold text-gray-800">Base légale</p>
+              <p class="text-gray-500 mt-1 text-xs">Intérêt légitime (art. 6-1-f RGPD)</p>
+            </div>
+            <div class="bg-gray-50 rounded-xl p-4">
+              <p class="font-semibold text-gray-800">Durée de conservation</p>
+              <p class="text-gray-500 mt-1 text-xs">3 ans à compter de la collecte, puis suppression automatique.</p>
             </div>
           </div>
         </section>
 
-        <section>
-          <h2 class="font-bold text-gray-900 text-base mb-3">4. Base légale du traitement</h2>
-          <p><strong>Intérêt légitime</strong> (Art. 6.1.f RGPD) — amélioration de la représentation citoyenne et production de statistiques d'opinion à destination des collectivités locales de Guadeloupe.</p>
-        </section>
-
-        <section>
-          <h2 class="font-bold text-gray-900 text-base mb-3">5. Durée de conservation</h2>
-          <p>Les données sont conservées <strong>3 ans</strong> à compter de leur collecte, puis supprimées automatiquement.</p>
-        </section>
-
-        <section>
-          <h2 class="font-bold text-gray-900 text-base mb-3">6. Tes droits</h2>
-          <p>Conformément au RGPD, tu disposes d'un droit d'accès, de rectification et de suppression de tes données.</p>
-          <p class="mt-2">Pour exercer ces droits ou demander la suppression de tes données, envoie un email à :</p>
+        <section class="pt-6">
+          <h2 class="font-bold text-gray-900 text-base mb-3">4. Vos droits</h2>
+          <p>Conformément au RGPD, vous disposez d'un droit d'accès, de rectification, d'effacement, d'opposition et de portabilité de vos données.</p>
+          <p class="mt-2">Pour exercer ces droits :</p>
           <a href="mailto:privacy@peyi.fr" class="inline-block mt-2 text-emerald-600 font-semibold underline">privacy@peyi.fr</a>
-          <p class="text-gray-400 mt-2">Nous nous engageons à répondre dans un délai de 30 jours.</p>
+          <p class="text-gray-400 mt-2 text-xs">Réponse sous 30 jours.</p>
         </section>
 
-        <section>
-          <h2 class="font-bold text-gray-900 text-base mb-3">7. Cookies</h2>
-          <p>Péyi utilise uniquement des cookies techniques strictement nécessaires au fonctionnement de l'application (session d'authentification). Aucun cookie publicitaire ou de tracking tiers n'est utilisé.</p>
+        <section class="pt-6">
+          <h2 class="font-bold text-gray-900 text-base mb-3">5. Cookies et traceurs</h2>
+          <p>Péyi n'utilise <strong>aucun cookie tiers</strong> ni traceur publicitaire.</p>
+          <p class="mt-2">Seul un identifiant anonyme local est stocké dans le <code class="bg-gray-100 px-1 rounded text-xs">localStorage</code> de votre navigateur afin de garantir l'unicité de votre vote. Cet identifiant ne quitte jamais votre appareil.</p>
+        </section>
+
+        <section class="pt-6">
+          <h2 class="font-bold text-gray-900 text-base mb-3">6. Contact DPO</h2>
+          <a href="mailto:privacy@peyi.fr" class="text-emerald-600 font-semibold underline">privacy@peyi.fr</a>
         </section>
 
       </div>

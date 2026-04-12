@@ -1,95 +1,125 @@
 <script setup lang="ts">
-import { onMounted } from 'vue'
-import { useNewsStore } from '@/stores/news'
-import { useCommune } from '@/composables/useCommune'
-import type { NewsCategory } from '@/types'
-import { formatDate } from '@/lib/utils'
-import { RouterLink } from 'vue-router'
+import { ref, onMounted } from 'vue'
 
-const newsStore = useNewsStore()
-const { communes } = useCommune()
+interface Article {
+  title: string
+  link: string
+  pubDate: string
+  source: string
+  description: string
+}
 
-const categories: { value: NewsCategory | null; label: string }[] = [
-  { value: null, label: 'Toutes' },
-  { value: 'politique', label: 'Politique' },
-  { value: 'environnement', label: 'Environnement' },
-  { value: 'culture', label: 'Culture' },
-  { value: 'sport', label: 'Sport' },
-  { value: 'économie', label: 'Économie' },
-  { value: 'social', label: 'Social' },
-  { value: 'sécurité', label: 'Sécurité' },
+const articles = ref<Article[]>([])
+const loading = ref(true)
+const error = ref(false)
+
+const PROXY = 'https://api.allorigins.win/get?url='
+const FEEDS = [
+  { url: 'https://www.guadeloupe.franceantilles.fr/rss.xml', source: 'France-Antilles' },
+  { url: 'https://rci.fm/guadeloupe/rss', source: 'RCI Guadeloupe' },
 ]
 
-onMounted(() => newsStore.loadArticles())
+async function loadFeed(feedUrl: string, source: string): Promise<Article[]> {
+  const res = await fetch(`${PROXY}${encodeURIComponent(feedUrl)}`)
+  const json = await res.json()
+  const xml = new DOMParser().parseFromString(json.contents, 'text/xml')
+  const items = Array.from(xml.querySelectorAll('item')).slice(0, 10)
+  return items.map(item => ({
+    title: item.querySelector('title')?.textContent ?? '',
+    link: item.querySelector('link')?.textContent ?? '',
+    pubDate: item.querySelector('pubDate')?.textContent ?? '',
+    description: item.querySelector('description')?.textContent?.replace(/<[^>]+>/g, '').slice(0, 120) ?? '',
+    source,
+  }))
+}
+
+onMounted(async () => {
+  loading.value = true
+  error.value = false
+  try {
+    const results = await Promise.allSettled(FEEDS.map(f => loadFeed(f.url, f.source)))
+    const all: Article[] = []
+    for (const r of results) {
+      if (r.status === 'fulfilled') all.push(...r.value)
+    }
+    articles.value = all
+      .filter(a => a.title)
+      .sort((a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime())
+      .slice(0, 20)
+    if (!all.length) error.value = true
+  } catch {
+    error.value = true
+  } finally {
+    loading.value = false
+  }
+})
+
+function formatDate(d: string): string {
+  try { return new Date(d).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) }
+  catch { return d }
+}
 </script>
 
 <template>
-  <div class="max-w-6xl mx-auto px-4 py-8">
-    <h1 class="text-2xl font-bold mb-6">📰 Actualités</h1>
+  <div class="max-w-4xl mx-auto px-4 py-8">
+    <div class="mb-6">
+      <h1 class="text-2xl font-bold">📰 Actualités</h1>
+      <p class="text-gray-500 text-sm mt-1">
+        Dernières nouvelles de Guadeloupe depuis France-Antilles et RCI.
+      </p>
+    </div>
 
-    <!-- Filtres -->
-    <div class="flex flex-wrap gap-3 mb-6">
-      <select
-        class="border border-gray-200 rounded-lg px-3 py-1.5 text-sm bg-white"
-        :value="newsStore.selectedCommune"
-        @change="newsStore.setCommune(($event.target as HTMLSelectElement).value || null)"
+    <!-- Chargement (skeleton) -->
+    <div v-if="loading" class="space-y-4">
+      <div v-for="i in 6" :key="i" class="bg-gray-100 rounded-xl h-24 animate-pulse" />
+    </div>
+
+    <!-- Erreur / fallback -->
+    <div v-else-if="error" class="text-center py-16">
+      <div class="text-4xl mb-4">📡</div>
+      <p class="text-gray-500 font-medium">Flux RSS temporairement indisponible</p>
+      <p class="text-gray-400 text-sm mt-2">
+        Consultez directement
+        <a href="https://www.guadeloupe.franceantilles.fr" target="_blank" rel="noopener" class="text-emerald-600 underline">France-Antilles</a>
+        ou
+        <a href="https://rci.fm/guadeloupe" target="_blank" rel="noopener" class="text-emerald-600 underline">RCI Guadeloupe</a>.
+      </p>
+    </div>
+
+    <!-- Liste articles -->
+    <div v-else class="space-y-4">
+      <a
+        v-for="(article, i) in articles"
+        :key="i"
+        :href="article.link"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="block bg-white border border-gray-100 rounded-xl p-4 hover:shadow-md transition group"
       >
-        <option value="">Toute la Guadeloupe</option>
-        <option v-for="c in communes" :key="c.id" :value="c.id">{{ c.name }}</option>
-      </select>
-
-      <div class="flex gap-1 flex-wrap">
-        <button
-          v-for="cat in categories"
-          :key="String(cat.value)"
-          class="px-3 py-1 rounded-full text-xs font-medium border transition"
-          :class="newsStore.selectedCategory === cat.value
-            ? 'bg-emerald-600 text-white border-emerald-600'
-            : 'bg-white text-gray-600 border-gray-200 hover:border-emerald-300'"
-          @click="newsStore.setCategory(cat.value)"
-        >
-          {{ cat.label }}
-        </button>
-      </div>
-    </div>
-
-    <!-- État chargement -->
-    <div v-if="newsStore.loading" class="grid md:grid-cols-3 gap-4">
-      <div v-for="i in 6" :key="i" class="bg-gray-100 rounded-xl h-48 animate-pulse" />
-    </div>
-
-    <!-- Grille articles -->
-    <div v-else-if="newsStore.articles.length" class="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-      <RouterLink
-        v-for="article in newsStore.articles"
-        :key="article.id"
-        :to="`/actualites/${article.slug}`"
-        class="bg-white rounded-xl border border-gray-100 overflow-hidden hover:shadow-md transition"
-      >
-        <img
-          v-if="article.image_url"
-          :src="article.image_url"
-          :alt="article.title"
-          class="w-full h-40 object-cover"
-        />
-        <div v-else class="w-full h-40 bg-emerald-50 flex items-center justify-center text-4xl">
-          📰
+        <div class="flex items-start gap-3">
+          <div class="flex-1 min-w-0">
+            <!-- Source + date -->
+            <div class="flex items-center gap-2 mb-1.5">
+              <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700">
+                {{ article.source }}
+              </span>
+              <span class="text-xs text-gray-400">{{ formatDate(article.pubDate) }}</span>
+            </div>
+            <!-- Titre -->
+            <h2 class="font-semibold text-sm leading-snug group-hover:text-emerald-700 transition line-clamp-2">
+              {{ article.title }}
+            </h2>
+            <!-- Description -->
+            <p v-if="article.description" class="text-xs text-gray-500 mt-1 line-clamp-2">
+              {{ article.description }}
+            </p>
+          </div>
+          <!-- Arrow -->
+          <svg class="w-4 h-4 text-gray-300 group-hover:text-emerald-500 transition shrink-0 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+          </svg>
         </div>
-        <div class="p-4">
-          <span class="text-xs font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full capitalize">
-            {{ article.category }}
-          </span>
-          <h2 class="font-semibold mt-2 text-sm leading-snug line-clamp-2">{{ article.title }}</h2>
-          <p class="text-xs text-gray-500 mt-2">
-            {{ article.commune?.name ?? 'Guadeloupe' }} · {{ formatDate(article.published_at) }}
-          </p>
-        </div>
-      </RouterLink>
-    </div>
-
-    <!-- Vide -->
-    <div v-else class="text-center py-16 text-gray-500">
-      Aucun article pour ces filtres.
+      </a>
     </div>
   </div>
 </template>
