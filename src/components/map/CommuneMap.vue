@@ -3,7 +3,7 @@ import { onMounted, onUnmounted, ref, watch } from 'vue'
 import type { Map as LMap, GeoJSON, Layer } from 'leaflet'
 import type L from 'leaflet'
 type LeafletInstance = typeof L
-import { participationColor } from '@/data/communeStats'
+import { participationColor, circleRadius } from '@/data/communeStats'
 import type { CommuneStat } from '@/data/communeStats'
 import { useCommunesStore } from '@/stores/communes'
 import geojsonData from '@/data/communes-971.json'
@@ -61,8 +61,10 @@ function renderGeoLayer(L: LeafletInstance) {
   geoLayer = L.geoJSON(geojsonData as GeoJSON.FeatureCollection, {
     style: (feature) => {
       const stat = getStatForFeature(feature!)
-      const color = stat ? participationColor(stat.participantCount) : '#6b7280'
-      const opacity = stat && stat.participantCount >= 20 ? 0.55 : 0.3
+      const count = stat?.participantCount ?? 0
+      const color = participationColor(count)
+      // Opacité de remplissage : faible si zéro répondant
+      const opacity = count >= 1 ? 0.45 : 0.15
       return {
         fillColor: color,
         fillOpacity: opacity,
@@ -125,15 +127,16 @@ function renderGeoLayer(L: LeafletInstance) {
     if (!stat) continue
 
     const [lat, lng] = centroid(feature.geometry)
-    const color = participationColor(stat.participantCount)
-    const r = 3 + (stat.participantCount / maxCount) * 12
+    const count = stat.participantCount
+    const color = participationColor(count)
+    const r = circleRadius(count, maxCount)
 
     L.circleMarker([lat, lng], {
       radius: r,
       fillColor: color,
-      fillOpacity: 0.9,
-      color: 'rgba(0,0,0,0.3)',
-      weight: 1,
+      fillOpacity: count > 0 ? 0.9 : 0.5,
+      color: count > 0 ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.2)',
+      weight: count > 0 ? 1 : 0.5,
       interactive: false,
     }).addTo(map)
 
@@ -157,6 +160,25 @@ function renderGeoLayer(L: LeafletInstance) {
 }
 
 let leafletInstance: LeafletInstance | null = null
+let pulseMarker: any = null
+
+function showPulse(L: LeafletInstance, code: string) {
+  if (!map) return
+  const feature = (geojsonData as GeoJSON.FeatureCollection).features.find(
+    f => f.properties?.code === code
+  )
+  if (!feature) return
+  const [lat, lng] = centroid(feature.geometry)
+  pulseMarker?.remove()
+  const icon = L.divIcon({
+    className: '',
+    html: `<div class="peyi-pulse"></div>`,
+    iconSize: [40, 40],
+    iconAnchor: [20, 20],
+  })
+  pulseMarker = L.marker([lat, lng], { icon, interactive: false }).addTo(map)
+  setTimeout(() => { pulseMarker?.remove(); pulseMarker = null }, 3000)
+}
 
 onMounted(async () => {
   const L = (await import('leaflet')).default
@@ -192,6 +214,14 @@ onMounted(async () => {
     () => communesStore.loaded,
     (isLoaded) => {
       if (isLoaded && leafletInstance) renderGeoLayer(leafletInstance)
+    },
+  )
+
+  // Pulse animation quand pulseCode change après soumission
+  watch(
+    () => communesStore.pulseCode,
+    (code) => {
+      if (code && leafletInstance) showPulse(leafletInstance, code)
     },
   )
 })
@@ -304,6 +334,20 @@ defineExpose({ resetSelection })
 .caribbean-map .leaflet-tile-pane {
   opacity: 0.72; /* légère transparence = la mer cyan du fond transparaît */
   filter: hue-rotate(168deg) saturate(1.8) brightness(1.35);
+}
+
+/* Pulse vert après soumission */
+.peyi-pulse {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(34, 197, 94, 0.4);
+  border: 2px solid #22c55e;
+  animation: peyiPulse 0.8s ease-out infinite;
+}
+@keyframes peyiPulse {
+  0%   { transform: scale(0.8); opacity: 1; }
+  100% { transform: scale(2.2); opacity: 0; }
 }
 
 /* Éléments décoratifs SVG */

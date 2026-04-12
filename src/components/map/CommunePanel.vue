@@ -24,18 +24,12 @@ watch(() => props.commune, async (c) => {
   communeDbId.value = data?.id ?? null
 }, { immediate: true })
 
-const globalSurveys = computed<Survey[]>(() => {
-  if (!store.surveys.length) return []
-  return store.surveys.filter(s => !s.commune_id).sort((a, b) =>
-    new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-  )
-})
-
+// Sondages spécifiques à cette commune uniquement (scope=commune)
 const localSurveys = computed<Survey[]>(() => {
   if (!communeDbId.value || !store.surveys.length) return []
-  return store.surveys.filter(s => s.commune_id === communeDbId.value).sort((a, b) =>
-    new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-  )
+  return store.surveys
+    .filter(s => s.commune_id === communeDbId.value)
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
 })
 
 const participationRate = computed(() => {
@@ -44,6 +38,12 @@ const participationRate = computed(() => {
 })
 
 const color = computed(() => props.commune ? participationColor(props.commune.participantCount) : '#6b7280')
+
+/** Temps estimé : nb questions × 12s, arrondi à la minute supérieure */
+function estimatedTime(questions: any[]): string {
+  const mins = Math.max(1, Math.ceil((questions.length * 12) / 60))
+  return `~${mins} min`
+}
 
 function startSurvey(id: string) {
   router.push(`/participer/${id}`)
@@ -98,48 +98,12 @@ function startSurvey(id: string) {
         </div>
       </div>
 
-      <!-- Sondages Guadeloupe -->
-      <div class="px-5 pt-4">
-        <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
-          Sondages Guadeloupe
-        </p>
-        <div v-if="globalSurveys.length" class="space-y-3">
-          <button
-            v-for="survey in globalSurveys"
-            :key="survey.id"
-            class="w-full text-left bg-gray-50 hover:bg-emerald-50 border border-transparent hover:border-emerald-200 rounded-xl p-4 transition group"
-            :class="{ 'opacity-60': store.hasAnswered(survey.id) }"
-            @click="!store.hasAnswered(survey.id) && startSurvey(survey.id)"
-          >
-            <div class="flex items-center justify-between">
-              <div class="flex-1">
-                <p class="font-medium text-sm group-hover:text-emerald-700 transition leading-snug">
-                  {{ survey.title }}
-                </p>
-                <p class="text-xs text-gray-500 mt-1">
-                  {{ survey.questions.length }} questions · ~{{ Math.ceil(survey.questions.length * 0.5) }} min
-                  · {{ store.getResponses(survey.id).length }} répondants
-                </p>
-              </div>
-              <div class="ml-3 shrink-0">
-                <span v-if="store.hasAnswered(survey.id)" class="text-xs text-emerald-600 font-medium bg-emerald-50 px-2 py-1 rounded-full">
-                  ✓ Fait
-                </span>
-                <div v-else class="w-8 h-8 bg-emerald-600 rounded-full flex items-center justify-center text-white group-hover:bg-emerald-700 transition">
-                  →
-                </div>
-              </div>
-            </div>
-          </button>
-        </div>
-        <p v-else class="text-sm text-gray-400 italic py-3">Aucun sondage en cours — revenez bientôt</p>
-      </div>
-
-      <!-- Sondages Commune -->
+      <!-- Sondages locaux uniquement -->
       <div class="px-5 pt-4 pb-8">
         <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
           Sondages {{ commune.displayName }}
         </p>
+
         <div v-if="localSurveys.length" class="space-y-3">
           <button
             v-for="survey in localSurveys"
@@ -154,7 +118,7 @@ function startSurvey(id: string) {
                   {{ survey.title }}
                 </p>
                 <p class="text-xs text-gray-500 mt-1">
-                  {{ survey.questions.length }} questions · ~{{ Math.ceil(survey.questions.length * 0.5) }} min
+                  {{ survey.questions.length }} questions · {{ estimatedTime(survey.questions) }}
                   · {{ store.getResponses(survey.id).length }} répondants
                 </p>
               </div>
@@ -169,7 +133,10 @@ function startSurvey(id: string) {
             </div>
           </button>
         </div>
-        <p v-else class="text-sm text-gray-400 italic py-3">Aucun sondage en cours — revenez bientôt</p>
+
+        <p v-else class="text-sm text-gray-400 italic py-3">
+          Aucun sondage local en cours pour {{ commune.displayName }} — revenez bientôt
+        </p>
       </div>
     </div>
   </Transition>

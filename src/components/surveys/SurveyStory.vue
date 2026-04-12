@@ -3,11 +3,13 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import type { Survey, SurveyQuestion, AgeGroup, Gender, SurveyDemographics } from '@/types'
 import { useSurveysStore } from '@/stores/surveys'
+import { useCommunesStore } from '@/stores/communes'
 import { getOrCreateRespondentId } from '@/lib/utils'
 
 const props = defineProps<{ survey: Survey }>()
 const router = useRouter()
 const store = useSurveysStore()
+const communesStore = useCommunesStore()
 
 // ── État ─────────────────────────────────────────────────────────────────────
 const currentIndex = ref(0)
@@ -114,6 +116,11 @@ async function submit() {
       demographics: demographics.value,
     })
     phase.value = 'done'
+
+    // Recharger les données de participation depuis Supabase
+    // et mémoriser la commune de l'utilisateur pour la pulse animation
+    const commune = (demographics.value as any)?.commune ?? null
+    communesStore.triggerRefresh(commune)
   } finally {
     submitting.value = false
   }
@@ -175,7 +182,7 @@ const genderOpts: { v: Gender; l: string }[] = [
           <span v-else>Terminé</span>
         </p>
         <p class="text-white/30 text-[10px] mt-0.5">
-          ~{{ Math.ceil(questions.length * 0.5) }} min
+          ~{{ Math.max(1, Math.ceil(questions.length * 12 / 60)) }} min
         </p>
       </div>
 

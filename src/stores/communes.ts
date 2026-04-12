@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { CommuneStat } from '@/data/communeStats'
-import { COMMUNE_DATA, NOM_TO_CODE, participationColor } from '@/data/communeStats'
+import { COMMUNE_DATA, NOM_TO_CODE, participationColor, circleRadius } from '@/data/communeStats'
 
 export const useCommunesStore = defineStore('communes', () => {
   /** Participation counts fetched from Supabase (commune displayName → count) */
@@ -10,6 +10,8 @@ export const useCommunesStore = defineStore('communes', () => {
   const activeSurveyCounts = ref<Record<string, number>>({})
   const loaded = ref(false)
   const loading = ref(false)
+  /** Code INSEE de la commune à animer (pulse vert) après soumission */
+  const pulseCode = ref<string | null>(null)
 
   async function loadParticipation() {
     if (loading.value) return
@@ -23,11 +25,24 @@ export const useCommunesStore = defineStore('communes', () => {
       remoteCounts.value = participation
       activeSurveyCounts.value = activeSurveys
     } catch {
-      // Silently fall back to zero remote counts — static extraCount still applies
+      // Silently fall back to zero remote counts
     } finally {
       loaded.value = true
       loading.value = false
     }
+  }
+
+  /**
+   * Appelé après soumission d'une réponse.
+   * Recharge les données et mémorise la commune pour la pulse animation.
+   * @param communeName - nom de la commune (depuis demographics), ou null
+   */
+  async function triggerRefresh(communeName: string | null) {
+    pulseCode.value = communeName ? (NOM_TO_CODE[communeName] ?? null) : null
+    loaded.value = false // force re-render de la carte
+    await loadParticipation()
+    // Reset pulse après 3s
+    setTimeout(() => { pulseCode.value = null }, 3000)
   }
 
   const communeStats = computed<CommuneStat[]>(() => {
@@ -40,15 +55,13 @@ export const useCommunesStore = defineStore('communes', () => {
     }
 
     const stats: CommuneStat[] = Object.entries(COMMUNE_DATA).map(([code, d]) => {
-      const fromRemote = countByCode[code] ?? 0
-      const participantCount = fromRemote + (d.extraCount ?? 0)
-      // activeSurveyCount: sum of active surveys linked to this commune (keyed by commune_id uuid)
-      // For now we use 0 since we'd need to map code → uuid; will be enriched if commune_id matches
+      // Uniquement les données réelles Supabase — aucune donnée fictive
+      const participantCount = countByCode[code] ?? 0
       return {
         code,
         displayName: d.displayName,
         participantCount,
-        activeSurveyCount: 0, // enriched via commune uuid lookup if available
+        activeSurveyCount: 0,
       }
     })
 
@@ -59,5 +72,5 @@ export const useCommunesStore = defineStore('communes', () => {
     Object.fromEntries(communeStats.value.map(s => [s.code, s]))
   )
 
-  return { loaded, loading, communeStats, statsByCode, loadParticipation, participationColor }
+  return { loaded, loading, pulseCode, communeStats, statsByCode, loadParticipation, triggerRefresh, participationColor, circleRadius }
 })

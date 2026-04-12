@@ -52,17 +52,6 @@ const tabs = [
 
       <div class="space-y-1">
         <RouterLink
-          to="/actualites"
-          class="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-gray-50 transition"
-          @click="menuOpen = false"
-        >
-          <span class="text-2xl">📰</span>
-          <div>
-            <p class="font-medium text-sm">Actualités</p>
-            <p class="text-xs text-gray-400">News hyperlocales par commune</p>
-          </div>
-        </RouterLink>
-        <RouterLink
           to="/comment-ca-marche"
           class="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-gray-50 transition"
           @click="menuOpen = false"
