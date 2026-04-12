@@ -139,23 +139,6 @@ function renderGeoLayer(L: LeafletInstance) {
       weight: count > 0 ? 1 : 0.5,
       interactive: false,
     }).addTo(map)
-
-    const labelIcon = L.divIcon({
-      className: '',
-      html: `<div style="
-        color:rgba(15,23,42,0.9);
-        font-size:10px;
-        font-weight:700;
-        text-shadow:0 1px 2px rgba(255,255,255,0.9),0 0 4px rgba(255,255,255,0.7);
-        white-space:nowrap;
-        pointer-events:none;
-        text-align:center;
-        line-height:1.2;
-      ">${stat.displayName}</div>`,
-      iconAnchor: [50, -r - 2],
-      iconSize: [100, 16],
-    })
-    L.marker([lat, lng], { icon: labelIcon, interactive: false }).addTo(map)
   }
 }
 
@@ -191,8 +174,8 @@ onMounted(async () => {
   communesStore.loadParticipation()
 
   map = L.map(mapEl.value, {
-    center: [16.4, -61.9],
-    zoom: 9,
+    center: [16.17, -61.6],
+    zoom: 10,
     zoomControl: false,
     attributionControl: false,
     minZoom: 7,
@@ -204,11 +187,9 @@ onMounted(async () => {
     subdomains: 'abcd',
     maxZoom: 14,
     minZoom: 6,
-    attribution: '© CartoDB · © OpenStreetMap',
   }).addTo(map)
 
   L.control.zoom({ position: 'bottomright' }).addTo(map)
-  L.control.attribution({ position: 'bottomleft', prefix: '© CartoDB · IGN' }).addTo(map)
 
   // Initial render with static data, then re-render when Supabase counts arrive
   renderGeoLayer(L)
