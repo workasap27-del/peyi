@@ -1,10 +1,14 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useSurveysStore } from '@/stores/surveys'
 
 const router = useRouter()
 const store = useSurveysStore()
+
+onMounted(async () => {
+  if (!store.surveys.length) await store.loadSurveys()
+})
 
 // Sondages globaux actifs (commune_id null), triés par date décroissante
 const globalSurveys = computed(() =>

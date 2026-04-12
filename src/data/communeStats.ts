@@ -39,6 +39,8 @@ export const COMMUNE_DATA: Record<string, { displayName: string }> = {
   '97132': { displayName: 'Trois-Rivières' },
   '97133': { displayName: 'Vieux-Fort' },
   '97134': { displayName: 'Vieux-Habitants' },
+  '97127': { displayName: 'Saint-Martin' },
+  '97123': { displayName: 'Saint-Barthélemy' },
 }
 
 // Mapping noms → code INSEE (pour matcher les demographics Supabase)

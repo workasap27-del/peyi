@@ -47,7 +47,7 @@ function fmt(n: number): string {
 
 <template>
   <div class="absolute top-0 inset-x-0 z-[1001] pointer-events-none">
-    <div class="mx-auto max-w-lg mt-2 px-4 py-2 bg-black/60 backdrop-blur-sm rounded-2xl text-white text-center shadow-lg">
+    <div class="mx-auto max-w-lg mt-2 px-4 py-2 bg-gray-900/80 backdrop-blur-sm rounded-2xl text-white text-center shadow-lg">
       <template v-if="allZero">
         <p class="text-sm font-medium text-white/80">Sois parmi les premiers à donner ton avis 👇</p>
       </template>

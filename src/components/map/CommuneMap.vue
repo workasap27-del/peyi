@@ -64,12 +64,12 @@ function renderGeoLayer(L: LeafletInstance) {
       const count = stat?.participantCount ?? 0
       const color = participationColor(count)
       // Opacité de remplissage : faible si zéro répondant
-      const opacity = count >= 1 ? 0.45 : 0.15
+      const opacity = count >= 1 ? 0.38 : 0.08
       return {
         fillColor: color,
         fillOpacity: opacity,
-        color: 'rgba(255,255,255,0.55)',
-        weight: 1.2,
+        color: 'rgba(0,0,0,0.25)',
+        weight: 1,
         opacity: 1,
       }
     },
@@ -101,9 +101,9 @@ function renderGeoLayer(L: LeafletInstance) {
 
       layer.on('mouseover', () => {
         ;(layer as any).setStyle({
-          fillOpacity: 0.75,
+          fillOpacity: 0.7,
           weight: 2.5,
-          color: 'rgba(255,255,255,0.9)',
+          color: 'rgba(0,0,0,0.6)',
         })
         ;(layer as any).bringToFront()
       })
@@ -115,7 +115,7 @@ function renderGeoLayer(L: LeafletInstance) {
       layer.on('click', () => {
         if (activeLayer && activeLayer !== layer) geoLayer!.resetStyle(activeLayer)
         activeLayer = layer
-        ;(layer as any).setStyle({ weight: 3, color: '#ffffff', fillOpacity: 0.7 })
+        ;(layer as any).setStyle({ weight: 3, color: '#1d4ed8', fillOpacity: 0.65 })
         emit('selectCommune', stat)
       })
     },
@@ -143,10 +143,10 @@ function renderGeoLayer(L: LeafletInstance) {
     const labelIcon = L.divIcon({
       className: '',
       html: `<div style="
-        color:rgba(255,255,255,0.85);
+        color:rgba(15,23,42,0.9);
         font-size:10px;
-        font-weight:600;
-        text-shadow:0 1px 3px rgba(0,0,0,0.9),0 0 6px rgba(0,0,0,0.6);
+        font-weight:700;
+        text-shadow:0 1px 2px rgba(255,255,255,0.9),0 0 4px rgba(255,255,255,0.7);
         white-space:nowrap;
         pointer-events:none;
         text-align:center;
@@ -191,17 +191,20 @@ onMounted(async () => {
   communesStore.loadParticipation()
 
   map = L.map(mapEl.value, {
-    center: [16.17, -61.58],
-    zoom: 10,
+    center: [16.4, -61.9],
+    zoom: 9,
     zoomControl: false,
     attributionControl: false,
+    minZoom: 7,
+    maxZoom: 14,
   })
 
-  // Tuiles CartoDB dark — le filtre CSS transforme le fond noir-bleu en turquoise Caraïbes
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png', {
+  // Tuiles CartoDB Voyager — fond coloré naturel avec relief, routes, végétation
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
     subdomains: 'abcd',
     maxZoom: 14,
-    minZoom: 8,
+    minZoom: 6,
+    attribution: '© CartoDB · © OpenStreetMap',
   }).addTo(map)
 
   L.control.zoom({ position: 'bottomright' }).addTo(map)
@@ -293,23 +296,23 @@ defineExpose({ resetSelection })
     </div>
 
     <!-- Légende -->
-    <div class="absolute top-10 right-4 bg-black/75 backdrop-blur-sm rounded-xl p-3 z-[1000] text-white text-xs space-y-1.5 pointer-events-none">
-      <p class="font-semibold text-gray-300 text-[10px] uppercase tracking-wider mb-2">Participation</p>
+    <div class="absolute top-10 right-4 bg-white/90 backdrop-blur-sm rounded-xl p-3 z-[1000] text-gray-800 text-xs space-y-1.5 pointer-events-none shadow-md">
+      <p class="font-semibold text-gray-500 text-[10px] uppercase tracking-wider mb-2">Participation</p>
       <div class="flex items-center gap-2">
         <div class="w-3 h-3 rounded-full bg-green-500 shrink-0" />
-        <span class="text-gray-300">Forte (100+ répondants)</span>
+        <span class="text-gray-700">Forte (100+ répondants)</span>
       </div>
       <div class="flex items-center gap-2">
         <div class="w-3 h-3 rounded-full bg-amber-500 shrink-0" />
-        <span class="text-gray-300">Modérée (20–99)</span>
+        <span class="text-gray-700">Modérée (1–99)</span>
       </div>
       <div class="flex items-center gap-2">
-        <div class="w-3 h-3 rounded-full bg-gray-500 shrink-0" />
-        <span class="text-gray-300">Faible ou inactif</span>
+        <div class="w-3 h-3 rounded-full bg-gray-400 shrink-0" />
+        <span class="text-gray-700">Aucun répondant</span>
       </div>
-      <div class="border-t border-white/10 my-1.5" />
-      <p class="text-gray-500 text-[10px]">• taille = nb répondants</p>
-      <p class="text-gray-400 text-[10px]">Cliquez sur votre commune</p>
+      <div class="border-t border-gray-200 my-1.5" />
+      <p class="text-gray-400 text-[10px]">• taille = nb répondants</p>
+      <p class="text-gray-500 text-[10px]">Cliquez sur votre commune</p>
     </div>
 
     <OnboardingTooltip />
@@ -327,13 +330,9 @@ defineExpose({ resetSelection })
 .peyi-tooltip::before { border-top-color: white !important; }
 .leaflet-container { font-family: 'Inter', sans-serif; }
 
-/* Fond turquoise Caraïbes */
+/* Fond mer naturel */
 .caribbean-map .leaflet-container {
-  background: #0891b2 !important; /* cyan-600 — visible dans la mer entre les tuiles */
-}
-.caribbean-map .leaflet-tile-pane {
-  opacity: 0.72; /* légère transparence = la mer cyan du fond transparaît */
-  filter: hue-rotate(168deg) saturate(1.8) brightness(1.35);
+  background: #a8d5e8 !important; /* bleu mer doux, visible entre les tuiles */
 }
 
 /* Pulse vert après soumission */
