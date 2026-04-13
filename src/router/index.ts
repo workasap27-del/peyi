@@ -57,6 +57,13 @@ const router = createRouter({
       component: () => import('@/views/LegalNotice.vue'),
     },
 
+    // ── Admin (protégé par ?token=ADMIN_TOKEN) ───────────────────────────────
+    {
+      path: '/admin/questions',
+      name: 'admin-questions',
+      component: () => import('@/views/admin/AdminQuestionsView.vue'),
+    },
+
     // ── 404 ──────────────────────────────────────────────────────────────────
     {
       path: '/:pathMatch(.*)*',
