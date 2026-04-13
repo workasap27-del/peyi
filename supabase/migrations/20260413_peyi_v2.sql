@@ -14,9 +14,14 @@ CREATE TABLE IF NOT EXISTS media_watch (
 );
 
 ALTER TABLE media_watch ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "media_watch_read_public" ON media_watch FOR SELECT USING (true);
-CREATE POLICY "media_watch_write_admin" ON media_watch FOR ALL
-  USING (auth.role() = 'service_role');
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='media_watch' AND policyname='media_watch_read_public') THEN
+    CREATE POLICY "media_watch_read_public" ON media_watch FOR SELECT USING (true);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='media_watch' AND policyname='media_watch_write_admin') THEN
+    CREATE POLICY "media_watch_write_admin" ON media_watch FOR ALL USING (auth.role() = 'service_role');
+  END IF;
+END $$;
 
 -- 2. question_proposals : propositions générées par l'IA
 CREATE TABLE IF NOT EXISTS question_proposals (
@@ -32,9 +37,14 @@ CREATE TABLE IF NOT EXISTS question_proposals (
 );
 
 ALTER TABLE question_proposals ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "proposals_read_public" ON question_proposals FOR SELECT USING (true);
-CREATE POLICY "proposals_write_admin" ON question_proposals FOR ALL
-  USING (auth.role() = 'service_role');
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='question_proposals' AND policyname='proposals_read_public') THEN
+    CREATE POLICY "proposals_read_public" ON question_proposals FOR SELECT USING (true);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='question_proposals' AND policyname='proposals_write_admin') THEN
+    CREATE POLICY "proposals_write_admin" ON question_proposals FOR ALL USING (auth.role() = 'service_role');
+  END IF;
+END $$;
 
 -- 3. questions : questions publiées (récurrentes ou flash)
 CREATE TABLE IF NOT EXISTS questions (
@@ -50,9 +60,14 @@ CREATE TABLE IF NOT EXISTS questions (
 );
 
 ALTER TABLE questions ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "questions_read_public" ON questions FOR SELECT USING (true);
-CREATE POLICY "questions_write_admin" ON questions FOR ALL
-  USING (auth.role() = 'service_role');
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='questions' AND policyname='questions_read_public') THEN
+    CREATE POLICY "questions_read_public" ON questions FOR SELECT USING (true);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='questions' AND policyname='questions_write_admin') THEN
+    CREATE POLICY "questions_write_admin" ON questions FOR ALL USING (auth.role() = 'service_role');
+  END IF;
+END $$;
 
 -- 4. survey_results : résultats calculés à la clôture
 CREATE TABLE IF NOT EXISTS survey_results (
@@ -69,10 +84,15 @@ CREATE TABLE IF NOT EXISTS survey_results (
 );
 
 ALTER TABLE survey_results ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "results_read_public" ON survey_results FOR SELECT USING (true);
-CREATE POLICY "results_write_admin" ON survey_results FOR ALL
-  USING (auth.role() = 'service_role');
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='survey_results' AND policyname='results_read_public') THEN
+    CREATE POLICY "results_read_public" ON survey_results FOR SELECT USING (true);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='survey_results' AND policyname='results_write_admin') THEN
+    CREATE POLICY "results_write_admin" ON survey_results FOR ALL USING (auth.role() = 'service_role');
+  END IF;
+END $$;
 
--- 5. Colonne recurrence_type sur surveys existante (si absente)
+-- 5. Colonnes sur surveys existante (si absentes)
 ALTER TABLE surveys ADD COLUMN IF NOT EXISTS recurrence_type text DEFAULT 'flash_daily';
 ALTER TABLE surveys ADD COLUMN IF NOT EXISTS parent_survey_id uuid REFERENCES surveys(id);
