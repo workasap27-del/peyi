@@ -5,7 +5,7 @@ export function useReportGenerator() {
   const generating = ref(false)
 
   async function generateReport(
-    surveyId: string,
+    _surveyId: string,
     survey: Survey,
     responses: SurveyResponse[],
     q1Options: { label: string; count: number; pct: number }[],

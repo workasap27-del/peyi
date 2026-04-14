@@ -3,7 +3,6 @@ import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import type { Survey } from '@/types'
 import { useSurveysStore } from '@/stores/surveys'
-import { getOrCreateRespondentId } from '@/lib/utils'
 import { useReportGenerator } from '@/composables/useReportGenerator'
 
 const props = defineProps<{ id: string }>()
