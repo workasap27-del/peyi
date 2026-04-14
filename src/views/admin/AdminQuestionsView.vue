@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import { createClient } from '@supabase/supabase-js'
 
 const route = useRoute()
 
@@ -12,11 +11,31 @@ const isAuthenticated = ref(false)
 const authError = ref('')
 const authLoading = ref(false)
 
+// Helper : appels API admin avec token dans Authorization header
+async function adminFetch(path: string, opts: RequestInit = {}) {
+  const res = await fetch(path, {
+    ...opts,
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${tokenFromUrl.value}`,
+      ...opts.headers,
+    },
+  })
+  if (!res.ok) {
+    const err = await res.text()
+    throw new Error(err || `HTTP ${res.status}`)
+  }
+  return res.json()
+}
+
 async function authenticate(tok: string) {
   authLoading.value = true
   authError.value = ''
   try {
-    const res = await fetch(`/api/admin/proposals?token=${tok}`)
+    // On teste le token en appelant list-surveys
+    const res = await fetch('/api/admin/list-surveys', {
+      headers: { Authorization: `Bearer ${tok}` },
+    })
     if (res.ok) {
       tokenFromUrl.value = tok
       isAuthenticated.value = true
@@ -30,17 +49,11 @@ async function authenticate(tok: string) {
   }
 }
 
-// ── Supabase admin client ─────────────────────────────────────────────────────
-const sbAdmin = createClient(
-  import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY ?? import.meta.env.VITE_SUPABASE_ANON_KEY
-)
-
 // ── Communes ──────────────────────────────────────────────────────────────────
 const COMMUNES = [
   'Basse-Terre', 'Baillif', 'Bouillante', 'Capesterre-Belle-Eau', 'Gourbeyre',
   'Pointe-Noire', 'Saint-Claude', 'Trois-Rivières', 'Vieux-Fort', 'Vieux-Habitants',
-  'Pointe-à-Pitre', 'Les Abymes', 'Baie-Mahault', 'Le Gosier', 'Morne-à-l\'Eau',
+  'Pointe-à-Pitre', 'Les Abymes', 'Baie-Mahault', 'Le Gosier', "Morne-à-l'Eau",
   'Petit-Bourg', 'Sainte-Anne', 'Sainte-Rose', 'Saint-François',
   'Anse-Bertrand', 'La Désirade', 'Le Lamentin', 'Le Moule', 'Port-Louis',
   'Saint-Louis (Marie-Galante)', 'Capesterre-de-Marie-Galante', 'Grand-Bourg',
@@ -102,33 +115,34 @@ function buildQuestions() {
   }
 }
 
+function showToast(msg: string, type: 'success' | 'error') {
+  toast.value = { msg, type }
+  setTimeout(() => { toast.value = null }, 4000)
+}
+
 async function publish() {
   if (!title.value.trim()) return
   publishing.value = true
   toast.value = null
   try {
-    let commune_id: string | null = null
-    if (scope.value === 'commune' && selectedCommune.value) {
-      const { data } = await sbAdmin.from('communes').select('id').eq('name', selectedCommune.value).single()
-      commune_id = data?.id ?? null
-    }
-
-    const payload: any = {
-      title: title.value.trim(),
-      description: context.value.trim() || null,
-      commune_id,
-      questions: buildQuestions(),
-      is_active: true,
-      ends_at: endsAt.value?.toISOString() ?? null,
-    }
+    let description = context.value.trim() || null
     if (scope.value === 'quarterly') {
-      payload.description = (payload.description ? payload.description + ' — ' : '') + 'permanent_quarterly'
+      description = description ? `${description} — permanent_quarterly` : 'permanent_quarterly'
     }
 
-    const { error } = await sbAdmin.from('surveys').insert(payload)
-    if (error) throw error
+    await adminFetch('/api/admin/create-survey', {
+      method: 'POST',
+      body: JSON.stringify({
+        title: title.value.trim(),
+        description,
+        commune_name: scope.value === 'commune' ? selectedCommune.value || null : null,
+        questions: buildQuestions(),
+        is_active: true,
+        ends_at: endsAt.value?.toISOString() ?? null,
+      }),
+    })
 
-    toast.value = { msg: 'Sondage publié ✓', type: 'success' }
+    showToast('Sondage publié ✓', 'success')
     title.value = ''
     context.value = ''
     communeSearch.value = ''
@@ -136,10 +150,9 @@ async function publish() {
     customOptions.value = ['', '']
     await loadSurveys()
   } catch (e: any) {
-    toast.value = { msg: e.message ?? 'Erreur publication', type: 'error' }
+    showToast(e.message ?? 'Erreur publication', 'error')
   } finally {
     publishing.value = false
-    setTimeout(() => { toast.value = null }, 4000)
   }
 }
 
@@ -152,36 +165,27 @@ const confirmClose = ref<string | null>(null)
 async function loadSurveys() {
   surveysLoading.value = true
   try {
-    const [{ data: active }, { data: closed }] = await Promise.all([
-      sbAdmin.from('surveys')
-        .select('id, title, created_at, ends_at, commune_id, communes(name)')
-        .eq('is_active', true)
-        .order('created_at', { ascending: false }),
-      sbAdmin.from('surveys')
-        .select('id, title, created_at, ends_at, commune_id')
-        .eq('is_active', false)
-        .order('created_at', { ascending: false })
-        .limit(5)
-    ])
-    activeSurveys.value = active ?? []
-    closedSurveys.value = closed ?? []
-
-    // Charger les comptages de réponses
-    for (const s of activeSurveys.value) {
-      const { count } = await sbAdmin.from('survey_responses')
-        .select('*', { count: 'exact', head: true })
-        .eq('survey_id', s.id)
-      s._count = count ?? 0
-    }
+    const data = await adminFetch('/api/admin/list-surveys')
+    activeSurveys.value = data.active ?? []
+    closedSurveys.value = data.closed ?? []
+  } catch (e: any) {
+    showToast(e.message, 'error')
   } finally {
     surveysLoading.value = false
   }
 }
 
 async function closeSurvey(id: string) {
-  await sbAdmin.from('surveys').update({ is_active: false }).eq('id', id)
-  confirmClose.value = null
-  await loadSurveys()
+  try {
+    await adminFetch('/api/admin/close-survey', {
+      method: 'POST',
+      body: JSON.stringify({ survey_id: id }),
+    })
+    confirmClose.value = null
+    await loadSurveys()
+  } catch (e: any) {
+    showToast(e.message, 'error')
+  }
 }
 
 function timeLeft(endsAt: string | null): string {
@@ -208,7 +212,6 @@ onMounted(async () => {
   if (tokenFromUrl.value) {
     await authenticate(tokenFromUrl.value)
   }
-  if (isAuthenticated.value) await loadSurveys()
 })
 
 watch(isAuthenticated, async (v) => {
