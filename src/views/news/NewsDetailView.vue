@@ -56,7 +56,7 @@ onMounted(async () => {
         class="w-full rounded-xl mb-6 max-h-96 object-cover"
       />
 
-      <div class="prose prose-sm max-w-none text-gray-700 whitespace-pre-line">
+      <div class="prose prose-sm max-w-none text-gray-700 whitespace-pre-line break-words pb-24">
         {{ article.body }}
       </div>
 

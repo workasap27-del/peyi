@@ -4,7 +4,7 @@ const router = useRouter()
 </script>
 
 <template>
-  <div class="min-h-full bg-gray-950 text-white overflow-y-auto">
+  <div class="min-h-dvh bg-gray-950 text-white">
     <!-- Header -->
     <div class="px-5 pt-10 pb-6">
       <button class="flex items-center gap-2 text-gray-400 mb-6 text-sm" @click="router.back()">
@@ -21,7 +21,7 @@ const router = useRouter()
     </div>
 
     <!-- Steps -->
-    <div class="px-5 space-y-5 pb-10">
+    <div class="px-5 space-y-5 pb-24">
 
       <!-- Step 1 -->
       <div class="bg-gray-900 rounded-2xl p-6 border border-gray-800 step-card" style="animation-delay: 0s;">

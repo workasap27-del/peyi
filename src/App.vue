@@ -12,7 +12,7 @@ const isStory = computed(() => route.name === 'survey-story')
   <div class="h-dvh flex flex-col overflow-hidden">
     <!-- Zone principale — prend tout l'espace au-dessus de la bottom nav -->
     <main
-      class="flex-1 overflow-hidden"
+      class="flex-1 overflow-y-auto"
       :class="isStory ? '' : 'pb-[57px]'"
     >
       <RouterView class="w-full h-full" />

@@ -14,7 +14,7 @@ function onSelectCommune(commune: CommuneStat) {
 
 <template>
   <!-- La carte occupe tout l'écran sous la bottom nav -->
-  <div class="w-full h-full relative">
+  <div class="w-full h-full relative overflow-hidden">
     <CommuneMap @select-commune="onSelectCommune" />
     <GlobalSurveyButton />
     <CommunePanel

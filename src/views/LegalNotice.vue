@@ -4,8 +4,8 @@ const router = useRouter()
 </script>
 
 <template>
-  <div class="min-h-full bg-white overflow-y-auto">
-    <div class="px-5 pt-10 pb-16 max-w-2xl mx-auto">
+  <div class="min-h-dvh bg-white">
+    <div class="px-5 pt-10 pb-24 max-w-2xl mx-auto">
       <button class="flex items-center gap-2 text-gray-400 mb-6 text-sm" @click="router.back()">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />

@@ -195,11 +195,11 @@ function downloadPdf() {
 </script>
 
 <template>
-  <div v-if="loading" class="flex items-center justify-center h-screen bg-gray-50">
+  <div v-if="loading" class="flex items-center justify-center min-h-screen pb-24 bg-gray-50">
     <div class="text-gray-400 text-sm">Chargement…</div>
   </div>
 
-  <div v-else-if="!survey" class="flex items-center justify-center h-screen bg-gray-50">
+  <div v-else-if="!survey" class="flex items-center justify-center min-h-screen pb-24 bg-gray-50">
     <p class="text-gray-400">Sondage introuvable.</p>
   </div>
 

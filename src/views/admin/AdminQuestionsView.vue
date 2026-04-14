@@ -277,7 +277,7 @@ watch(isAuthenticated, async (v) => {
     <div class="flex flex-col lg:flex-row gap-0 min-h-[calc(100vh-61px)]">
 
       <!-- ── COLONNE GAUCHE : Formulaire (60%) ──────────────────────────── -->
-      <div class="lg:w-[60%] border-r border-[#1a1a1a] px-6 py-6 space-y-6">
+      <div class="lg:w-[60%] border-r border-[#1a1a1a] px-6 py-6 space-y-6 lg:overflow-y-auto lg:max-h-[calc(100vh-61px)]">
         <h2 class="text-xs font-semibold text-gray-500 uppercase tracking-widest">Nouveau sondage</h2>
 
         <!-- Champ 1 : Titre -->
@@ -456,7 +456,7 @@ watch(isAuthenticated, async (v) => {
       </div>
 
       <!-- ── COLONNE DROITE : Sondages actifs (40%) ─────────────────────── -->
-      <div class="lg:w-[40%] px-6 py-6 space-y-6">
+      <div class="lg:w-[40%] px-6 py-6 space-y-6 lg:overflow-y-auto lg:max-h-[calc(100vh-61px)]">
 
         <!-- Sondages actifs -->
         <div>
