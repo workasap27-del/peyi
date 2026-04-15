@@ -7,8 +7,9 @@ export async function fetchParticipationByCommune(): Promise<Record<string, numb
     .select('demographics')
 
   if (error) {
-    console.error('[communesService] fetchParticipationByCommune error:', error)
-    throw error
+    // RLS peut bloquer SELECT sur survey_responses pour les anonymes — on retourne {} sans throw
+    console.warn('[communesService] fetchParticipationByCommune:', error.message)
+    return {}
   }
 
   const counts: Record<string, number> = {}

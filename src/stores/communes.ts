@@ -20,10 +20,14 @@ export const useCommunesStore = defineStore('communes', () => {
     loading.value = true
     try {
       const { fetchParticipationByCommune, fetchActiveSurveysCountByCommune } = await import('@/services/communesService')
-      const [participation, activeSurveys] = await Promise.all([
+      // allSettled : une requête qui échoue (ex: RLS sur survey_responses)
+      // ne bloque plus l'autre (sondages actifs par commune)
+      const [participationResult, activeSurveysResult] = await Promise.allSettled([
         fetchParticipationByCommune(),
         fetchActiveSurveysCountByCommune(),
       ])
+      const participation = participationResult.status === 'fulfilled' ? participationResult.value : {}
+      const activeSurveys  = activeSurveysResult.status  === 'fulfilled' ? activeSurveysResult.value  : {}
       remoteCounts.value = participation
       activeSurveyCounts.value = activeSurveys
       // Compute maxCount for relative participation thresholds
