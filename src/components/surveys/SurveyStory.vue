@@ -173,109 +173,131 @@ const genderOpts: { v: Gender; l: string }[] = [
         <div
           v-if="phase === 'questions' && current"
           :key="currentIndex"
-          class="flex-1 flex flex-col px-6 pt-8 pb-4"
+          class="flex-1 flex flex-col px-5 pt-4 pb-5 gap-4"
         >
-          <div class="flex-1 flex flex-col justify-center">
-            <!-- Question -->
-            <p class="text-white text-2xl font-bold leading-snug mb-8 text-center">
+          <!-- ── Card question ── -->
+          <div
+            class="relative rounded-3xl overflow-hidden flex-1 flex flex-col justify-between p-6 min-h-0"
+            style="background: linear-gradient(145deg, #059669 0%, #0891b2 100%)"
+          >
+            <!-- Orbes décoratifs -->
+            <div class="absolute -top-8 -right-8 w-40 h-40 rounded-full bg-white/10 pointer-events-none" />
+            <div class="absolute -bottom-10 -left-10 w-48 h-48 rounded-full bg-black/10 pointer-events-none" />
+
+            <!-- Badge question -->
+            <div class="relative z-10">
+              <span class="inline-flex items-center gap-1.5 bg-black/20 text-white/80 text-[11px] font-bold uppercase tracking-widest px-3 py-1 rounded-full">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-300 inline-block animate-pulse" />
+                Question {{ currentIndex + 1 }} / {{ questions.length }}
+              </span>
+            </div>
+
+            <!-- Texte question -->
+            <p class="relative z-10 text-white text-[26px] font-black leading-tight text-center flex-1 flex items-center justify-center py-4">
               {{ current.label }}
             </p>
 
-            <!-- ── Radio (single choice) ── -->
-            <div v-if="current.type === 'single' || current.type === 'radio'" class="space-y-3">
-              <button
-                v-for="opt in current.options"
-                :key="opt"
-                class="w-full text-left px-5 py-4 rounded-2xl border-2 text-white font-medium text-base transition-all duration-150"
-                :class="answers[current.id] === opt
-                  ? 'bg-emerald-600 border-emerald-500 scale-[1.02]'
-                  : 'bg-white/10 border-white/20 hover:bg-white/20 active:scale-[0.98]'"
-                @click="selectSingle(current.id, opt)"
-              >{{ opt }}</button>
+            <!-- Type indicator -->
+            <div class="relative z-10 text-center">
+              <span v-if="current.type === 'single' || current.type === 'radio'" class="text-white/50 text-xs">Choix unique</span>
+              <span v-else-if="current.type === 'multiple'" class="text-white/50 text-xs">Plusieurs réponses possibles</span>
+              <span v-else-if="current.type === 'scale'" class="text-white/50 text-xs">Note de {{ current.min ?? 1 }} à {{ current.max ?? 5 }}</span>
             </div>
+          </div>
 
-            <!-- ── Choix multiples ── -->
-            <div v-else-if="current.type === 'multiple'" class="space-y-3">
-              <button
-                v-for="opt in current.options"
-                :key="opt"
-                class="w-full text-left px-5 py-3.5 rounded-2xl border-2 text-white font-medium text-sm transition-all duration-150 flex items-center gap-3"
-                :class="(answers[current.id] as string[] ?? []).includes(opt)
-                  ? 'bg-emerald-600 border-emerald-500'
-                  : 'bg-white/10 border-white/20 hover:bg-white/20'"
-                @click="toggleMultiple(current.id, opt)"
-              >
-                <span
-                  class="w-5 h-5 rounded border-2 flex items-center justify-center shrink-0"
-                  :class="(answers[current.id] as string[] ?? []).includes(opt)
-                    ? 'bg-white border-white'
-                    : 'border-white/40'"
-                >
-                  <svg v-if="(answers[current.id] as string[] ?? []).includes(opt)" class="w-3 h-3 text-emerald-600" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M2 6l3 3 5-5"/>
-                  </svg>
-                </span>
-                {{ opt }}
-              </button>
+          <!-- ── Options ── -->
 
-              <button
-                class="w-full py-4 rounded-2xl font-bold text-base mt-2 transition active:scale-[0.98]"
-                :class="(answers[current.id] as string[] ?? []).length > 0
-                  ? 'bg-emerald-500 text-white hover:bg-emerald-400'
-                  : 'bg-white/10 text-white/40 cursor-not-allowed'"
-                :disabled="(answers[current.id] as string[] ?? []).length === 0"
-                @click="next"
-              >Continuer →</button>
+          <!-- Radio (single choice) -->
+          <div v-if="current.type === 'single' || current.type === 'radio'" class="space-y-2.5 shrink-0">
+            <button
+              v-for="(opt, idx) in current.options"
+              :key="opt"
+              class="w-full flex items-center gap-3.5 px-4 py-3.5 rounded-2xl border-2 transition-all duration-150 active:scale-[0.98]"
+              :class="answers[current.id] === opt
+                ? 'bg-emerald-500 border-emerald-400 scale-[1.01]'
+                : 'bg-white/8 border-white/12 hover:bg-white/14 hover:border-white/25'"
+              @click="selectSingle(current.id, opt)"
+            >
+              <span
+                class="w-8 h-8 rounded-xl flex items-center justify-center text-sm font-black shrink-0 transition-all"
+                :class="answers[current.id] === opt ? 'bg-white/25 text-white' : 'bg-white/10 text-white/50'"
+              >{{ String.fromCharCode(65 + idx) }}</span>
+              <span class="text-white font-semibold text-[15px] flex-1 text-left">{{ opt }}</span>
+              <svg v-if="answers[current.id] === opt" class="w-5 h-5 text-white shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+              </svg>
+            </button>
+          </div>
+
+          <!-- Choix multiples -->
+          <div v-else-if="current.type === 'multiple'" class="space-y-2.5 shrink-0">
+            <button
+              v-for="(opt, idx) in current.options"
+              :key="opt"
+              class="w-full flex items-center gap-3.5 px-4 py-3.5 rounded-2xl border-2 transition-all duration-150 active:scale-[0.98]"
+              :class="(answers[current.id] as string[] ?? []).includes(opt)
+                ? 'bg-emerald-500 border-emerald-400'
+                : 'bg-white/8 border-white/12 hover:bg-white/14 hover:border-white/25'"
+              @click="toggleMultiple(current.id, opt)"
+            >
+              <span
+                class="w-8 h-8 rounded-xl flex items-center justify-center text-sm font-black shrink-0"
+                :class="(answers[current.id] as string[] ?? []).includes(opt) ? 'bg-white/25 text-white' : 'bg-white/10 text-white/50'"
+              >{{ String.fromCharCode(65 + idx) }}</span>
+              <span class="text-white font-semibold text-[15px] flex-1 text-left">{{ opt }}</span>
+              <svg v-if="(answers[current.id] as string[] ?? []).includes(opt)" class="w-5 h-5 text-white shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+              </svg>
+            </button>
+            <button
+              class="w-full py-4 rounded-2xl font-bold text-base mt-1 transition active:scale-[0.98]"
+              :class="(answers[current.id] as string[] ?? []).length > 0
+                ? 'bg-emerald-500 text-white'
+                : 'bg-white/10 text-white/30 cursor-not-allowed'"
+              :disabled="(answers[current.id] as string[] ?? []).length === 0"
+              @click="next"
+            >Continuer →</button>
+          </div>
+
+          <!-- Échelle : boutons numérotés -->
+          <div v-else-if="current.type === 'scale'" class="space-y-4 shrink-0">
+            <div class="text-center text-5xl transition-all duration-200">
+              {{ scaleEmoji(Number(answers[current!.id] ?? current!.min ?? 1), current!.max ?? 5) }}
             </div>
-
-            <!-- ── Échelle : boutons numérotés ── -->
-            <div v-else-if="current.type === 'scale'" class="space-y-6">
-              <!-- Emoji dynamique -->
-              <div class="text-center text-5xl transition-all duration-200">
-                {{ scaleEmoji(Number(answers[current!.id] ?? current!.min ?? 1), current!.max ?? 5) }}
-              </div>
-
-              <!-- Boutons numérotés -->
-              <div class="flex gap-2 justify-center flex-wrap">
-                <button
-                  v-for="n in Array.from({ length: (current!.max ?? 5) - (current!.min ?? 1) + 1 }, (_, i) => (current!.min ?? 1) + i)"
-                  :key="n"
-                  class="w-11 h-11 rounded-xl font-bold text-sm transition-all duration-150 active:scale-95"
-                  :class="answers[current.id] === n
-                    ? 'bg-emerald-500 text-white scale-110 shadow-lg shadow-emerald-500/30'
-                    : 'bg-white/10 text-white hover:bg-white/20 border border-white/20'"
-                  @click="selectScale(current.id, n)"
-                >{{ n }}</button>
-              </div>
-
-              <!-- Labels min/max -->
-              <div class="flex justify-between text-white/40 text-xs px-1">
-                <span>{{ current.min ?? 1 }} — Très insatisfait</span>
-                <span>Très satisfait — {{ current.max ?? 5 }}</span>
-              </div>
-
+            <div class="flex gap-2 justify-center flex-wrap">
               <button
-                class="w-full py-4 rounded-2xl font-bold text-base transition active:scale-[0.98]"
-                :class="answers[current.id] !== undefined
-                  ? 'bg-emerald-500 text-white hover:bg-emerald-400'
-                  : 'bg-white text-gray-900 hover:bg-gray-100'"
-                @click="next"
-              >Continuer →</button>
+                v-for="n in Array.from({ length: (current!.max ?? 5) - (current!.min ?? 1) + 1 }, (_, i) => (current!.min ?? 1) + i)"
+                :key="n"
+                class="w-12 h-12 rounded-2xl font-black text-base transition-all duration-150 active:scale-95"
+                :class="answers[current.id] === n
+                  ? 'bg-emerald-500 text-white scale-110 shadow-lg shadow-emerald-500/40'
+                  : 'bg-white/10 text-white hover:bg-white/20 border border-white/15'"
+                @click="selectScale(current.id, n)"
+              >{{ n }}</button>
             </div>
+            <div class="flex justify-between text-white/40 text-xs px-1">
+              <span>😞 Très insatisfait</span>
+              <span>Très satisfait 😊</span>
+            </div>
+            <button
+              class="w-full py-4 rounded-2xl font-bold text-base transition active:scale-[0.98]"
+              :class="answers[current.id] !== undefined ? 'bg-emerald-500 text-white' : 'bg-white/10 text-white/30'"
+              @click="next"
+            >Continuer →</button>
+          </div>
 
-            <!-- ── Texte libre ── -->
-            <div v-else-if="current.type === 'text'" class="space-y-4">
-              <textarea
-                v-model="answers[current.id] as string"
-                rows="4"
-                class="w-full bg-white/10 border-2 border-white/20 rounded-2xl px-4 py-3 text-white placeholder-white/30 text-base resize-none focus:outline-none focus:border-emerald-500"
-                placeholder="Votre réponse (facultatif)…"
-              />
-              <button
-                class="w-full py-4 rounded-2xl bg-white text-gray-900 font-bold text-base transition hover:bg-gray-100"
-                @click="next"
-              >{{ answers[current.id] ? 'Continuer →' : 'Passer →' }}</button>
-            </div>
+          <!-- Texte libre -->
+          <div v-else-if="current.type === 'text'" class="space-y-3 shrink-0">
+            <textarea
+              v-model="answers[current.id] as string"
+              rows="4"
+              class="w-full bg-white/10 border-2 border-white/15 rounded-2xl px-4 py-3 text-white placeholder-white/30 text-base resize-none focus:outline-none focus:border-emerald-500"
+              placeholder="Votre réponse (facultatif)…"
+            />
+            <button
+              class="w-full py-4 rounded-2xl bg-emerald-500 text-white font-bold text-base transition hover:bg-emerald-400"
+              @click="next"
+            >{{ answers[current.id] ? 'Continuer →' : 'Passer →' }}</button>
           </div>
         </div>
       </Transition>
