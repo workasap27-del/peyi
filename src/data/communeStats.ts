@@ -5,7 +5,7 @@ export interface CommuneStat {
   activeSurveyCount: number
 }
 
-// Mapping code INSEE → nom affiché
+// Mapping code INSEE → nom affiché (doit correspondre exactement aux noms du profil citoyen)
 export const COMMUNE_DATA: Record<string, { displayName: string }> = {
   '97101': { displayName: 'Les Abymes' },
   '97102': { displayName: 'Anse-Bertrand' },
@@ -14,7 +14,7 @@ export const COMMUNE_DATA: Record<string, { displayName: string }> = {
   '97105': { displayName: 'Basse-Terre' },
   '97106': { displayName: 'Bouillante' },
   '97107': { displayName: 'Capesterre-Belle-Eau' },
-  '97108': { displayName: 'Capesterre-de-MG' },
+  '97108': { displayName: 'Capesterre-de-Marie-Galante' },
   '97109': { displayName: 'Gourbeyre' },
   '97110': { displayName: 'La Désirade' },
   '97111': { displayName: 'Deshaies' },
@@ -29,9 +29,11 @@ export const COMMUNE_DATA: Record<string, { displayName: string }> = {
   '97120': { displayName: 'Pointe-à-Pitre' },
   '97121': { displayName: 'Pointe-Noire' },
   '97122': { displayName: 'Port-Louis' },
+  '97123': { displayName: 'Saint-Barthélemy' },
   '97124': { displayName: 'Saint-Claude' },
   '97125': { displayName: 'Saint-François' },
-  '97126': { displayName: 'Saint-Louis (MG)' },
+  '97126': { displayName: 'Saint-Louis (Marie-Galante)' },
+  '97127': { displayName: 'Saint-Martin' },
   '97128': { displayName: 'Sainte-Anne' },
   '97129': { displayName: 'Sainte-Rose' },
   '97130': { displayName: 'Terre-de-Bas' },
@@ -39,39 +41,65 @@ export const COMMUNE_DATA: Record<string, { displayName: string }> = {
   '97132': { displayName: 'Trois-Rivières' },
   '97133': { displayName: 'Vieux-Fort' },
   '97134': { displayName: 'Vieux-Habitants' },
-  '97127': { displayName: 'Saint-Martin' },
-  '97123': { displayName: 'Saint-Barthélemy' },
 }
 
-// Mapping noms → code INSEE (pour matcher les demographics Supabase)
+// Mapping complet nom commune → code INSEE
+// Les noms doivent correspondre EXACTEMENT à ceux stockés dans demographics.commune
 export const NOM_TO_CODE: Record<string, string> = {
-  'Pointe-à-Pitre':       '97120',
-  'Basse-Terre':          '97105',
-  'Les Abymes':           '97101',
-  'Capesterre-Belle-Eau': '97107',
-  'Saint-François':       '97125',
-  'Baie-Mahault':         '97103',
-  'Le Gosier':            '97113',
+  'Les Abymes':                     '97101',
+  'Anse-Bertrand':                  '97102',
+  'Baie-Mahault':                   '97103',
+  'Baillif':                        '97104',
+  'Basse-Terre':                    '97105',
+  'Bouillante':                     '97106',
+  'Capesterre-Belle-Eau':           '97107',
+  'Capesterre-de-Marie-Galante':    '97108',
+  'Gourbeyre':                      '97109',
+  'La Désirade':                    '97110',
+  'Deshaies':                       '97111',
+  'Grand-Bourg':                    '97112',
+  'Le Gosier':                      '97113',
+  'Goyave':                         '97114',
+  'Le Lamentin':                    '97115',
+  "Morne-à-l'Eau":                  '97116',
+  'Le Moule':                       '97117',
+  'Petit-Bourg':                    '97118',
+  'Petit-Canal':                    '97119',
+  'Pointe-à-Pitre':                 '97120',
+  'Pointe-Noire':                   '97121',
+  'Port-Louis':                     '97122',
+  'Saint-Barthélemy':               '97123',
+  'Saint-Claude':                   '97124',
+  'Saint-François':                 '97125',
+  'Saint-Louis (Marie-Galante)':    '97126',
+  'Saint-Martin':                   '97127',
+  'Sainte-Anne':                    '97128',
+  'Sainte-Rose':                    '97129',
+  'Terre-de-Bas':                   '97130',
+  'Terre-de-Haut':                  '97131',
+  'Trois-Rivières':                 '97132',
+  'Vieux-Fort':                     '97133',
+  'Vieux-Habitants':                '97134',
 }
 
 /**
  * Couleur relative selon le nb de répondants et le maximum connu.
- * Gris si aucun répondant, vert si count >= 30% du max, orange sinon.
+ * Vert clair si aucun répondant (communes visibles), vert vif si > 30% du max, orange sinon.
  */
 export function participationColor(count: number, maxCount: number): string {
-  if (maxCount === 0 || count === 0) return '#6b7280'
-  if (count >= maxCount * 0.3) return '#22c55e'
-  return '#f59e0b'
+  if (count === 0) return '#6b7280'   // gris pour cercles uniquement
+  if (maxCount === 0) return '#34d399'
+  if (count >= maxCount * 0.3) return '#22c55e'  // vert vif : forte participation
+  return '#f59e0b'                               // orange : participation modérée
 }
 
 /**
  * Label lisible pour la légende.
  */
 export function getParticipationLabel(count: number, maxCount: number): string {
-  const color = participationColor(count, maxCount)
-  if (color === '#22c55e') return 'Forte participation'
-  if (color === '#f59e0b') return 'Modérée'
-  return 'Aucune'
+  if (count === 0) return 'Aucune'
+  if (count >= maxCount * 0.3) return 'Forte participation'
+  return 'Modérée'
 }
 
 /** Alias conservé pour compatibilité descendante */

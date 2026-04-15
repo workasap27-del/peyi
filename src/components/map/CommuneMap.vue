@@ -62,11 +62,11 @@ function renderGeoLayer(L: LeafletInstance) {
     ? communesStore.maxCount
     : Math.max(...Object.values(communesStore.statsByCode).map(s => s.participantCount), 0)
 
-  // Légère teinte verte forêt sur les terres guadeloupéennes
+  // Teinte de base : donne une couleur verte aux terres guadeloupéennes (contraste avec l'océan)
   L.geoJSON(geojsonData as GeoJSON.FeatureCollection, {
     style: () => ({
       fillColor: '#1a4a2e',
-      fillOpacity: 0.12,
+      fillOpacity: 0.22,
       color: 'transparent',
       weight: 0,
     }),
@@ -77,11 +77,12 @@ function renderGeoLayer(L: LeafletInstance) {
     style: (feature) => {
       const stat = getStatForFeature(feature!)
       const count = stat?.participantCount ?? 0
-      const color = participationColor(count, mx)
+      // Communes sans répondants : vert clair pâle pour les distinguer de l'océan
+      const fillColor = count > 0 ? participationColor(count, mx) : '#a7f3d0'
       return {
-        fillColor: color,
-        fillOpacity: count >= 1 ? 0.30 : 0.10,
-        color: 'rgba(255,255,255,0.9)',
+        fillColor,
+        fillOpacity: count >= 1 ? 0.55 : 0.25,
+        color: 'rgba(15,60,30,0.55)',   // bordure vert forêt — contraste net sur fond beige
         weight: 1.5,
         opacity: 1,
       }
@@ -114,9 +115,9 @@ function renderGeoLayer(L: LeafletInstance) {
 
       layer.on('mouseover', () => {
         ;(layer as any).setStyle({
-          fillOpacity: 0.55,
+          fillOpacity: 0.72,
           weight: 2.5,
-          color: '#ffffff',
+          color: 'rgba(5,40,20,0.85)',
         })
         ;(layer as any).bringToFront()
       })
@@ -223,7 +224,7 @@ onMounted(async () => {
   map.on('zoomend', updateLabelVisibility)
   updateLabelVisibility()
 
-  // CartoDB Voyager No Labels — supprime les labels natifs pour nos labels custom
+  // CartoDB Voyager No Labels
   L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png', {
     subdomains: 'abcd',
     maxZoom: 14,
@@ -254,6 +255,10 @@ function resetSelection() {
     geoLayer?.resetStyle(activeLayer)
     activeLayer = null
   }
+}
+
+function recenterMap() {
+  map?.setView([16.3, -61.4], 9)
 }
 
 onUnmounted(() => {
@@ -314,6 +319,20 @@ defineExpose({ resetSelection })
         <circle cx="27" cy="30" r="1.5" fill="#fff"/>
       </svg>
     </div>
+
+    <!-- Bouton recentrer (style Google Maps) -->
+    <button
+      class="absolute z-[1001] bg-white rounded-xl shadow-lg border border-gray-200 flex items-center justify-center hover:bg-gray-50 active:scale-95 transition"
+      style="bottom: 88px; right: 12px; width: 40px; height: 40px;"
+      title="Recentrer sur la Guadeloupe"
+      @click="recenterMap"
+    >
+      <svg viewBox="0 0 24 24" class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="3" />
+        <path d="M12 2v3M12 19v3M2 12h3M19 12h3" stroke-linecap="round"/>
+        <path d="M12 8a4 4 0 100 8 4 4 0 000-8z" opacity="0.2" fill="currentColor" stroke="none"/>
+      </svg>
+    </button>
 
     <!-- Légende repliable -->
     <LegendPanel />
