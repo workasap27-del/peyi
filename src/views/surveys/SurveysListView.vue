@@ -7,9 +7,21 @@ const router = useRouter()
 const store = useSurveysStore()
 const tab = ref<'global' | 'commune'>('global')
 const selectedCommune = ref('')
+const profileCommune = ref('')
 
 onMounted(async () => {
   if (!store.surveys.length) await store.loadSurveys()
+  // Lire la commune du profil citoyen persistant
+  try {
+    const saved = localStorage.getItem('peyi_citizen_profile')
+    if (saved) {
+      const p = JSON.parse(saved)
+      if (p.commune) {
+        profileCommune.value = p.commune
+        selectedCommune.value = p.commune
+      }
+    }
+  } catch { /* ignore */ }
 })
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -26,11 +38,28 @@ function timeLeft(endsAt: string | null): string {
   if (!endsAt) return 'Sans limite'
   const diff = new Date(endsAt).getTime() - Date.now()
   if (diff <= 0) return 'Clôturé'
+  const days = Math.floor(diff / 86400000)
+  // Si plus de 30 jours, afficher la date en clair
+  if (days > 30) {
+    return 'Ouvert jusqu\'au ' + new Date(endsAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
+  }
   const h = Math.floor(diff / 3600000)
   const d = Math.floor(h / 24)
   const rh = h % 24
   if (d > 0) return `${d}j ${rh}h`
   return `${h}h`
+}
+
+// Sondages de la commune du profil actifs
+const communeActiveSurveys = computed(() =>
+  profileCommune.value
+    ? store.surveys.filter(s => !!s.commune_id && s.commune?.name === profileCommune.value && s.is_active !== false)
+    : []
+)
+
+function goToCommune() {
+  tab.value = 'commune'
+  selectedCommune.value = profileCommune.value
 }
 
 // Badge catégorie selon mots-clés dans le titre
@@ -131,6 +160,24 @@ function baroIcon(title: string): string {
         :class="tab === 'commune' ? 'border-emerald-600 text-emerald-700' : 'border-transparent text-gray-500'"
         @click="tab = 'commune'"
       >Par commune</button>
+    </div>
+
+    <!-- ── Bannière commune du profil ─────────────────────────────────────── -->
+    <div class="px-4 pt-3">
+      <div v-if="profileCommune" class="bg-emerald-50 border border-emerald-200 rounded-xl p-3 flex items-center justify-between gap-2">
+        <p class="text-emerald-800 text-[15px] font-medium">
+          📍 <span class="font-bold">{{ communeActiveSurveys.length }}</span>
+          sondage{{ communeActiveSurveys.length !== 1 ? 's' : '' }} en cours dans votre commune —
+          <span class="font-semibold">{{ profileCommune }}</span>
+        </p>
+        <button
+          class="shrink-0 text-emerald-700 font-bold text-sm underline"
+          @click="goToCommune"
+        >Voir</button>
+      </div>
+      <p v-else class="text-gray-400 text-sm italic">
+        Renseignez votre commune dans votre profil pour voir les sondages locaux.
+      </p>
     </div>
 
     <!-- Chargement -->

@@ -3,12 +3,9 @@ import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import type { Survey } from '@/types'
 import { useSurveysStore } from '@/stores/surveys'
-import { useReportGenerator } from '@/composables/useReportGenerator'
-
 const props = defineProps<{ id: string }>()
 const router = useRouter()
 const store = useSurveysStore()
-const { generateReport, generating } = useReportGenerator()
 
 const survey = ref<Survey | null>(null)
 const loading = ref(true)
@@ -32,20 +29,13 @@ const marginError = computed(() => {
   return Math.round((1 / Math.sqrt(n.value)) * 100 * 10) / 10
 })
 
-/** Score fiabilité : A (n>500), B (n>200), C (n>50), D (n<50) */
-const reliabilityScore = computed(() => {
-  if (n.value >= 500) return 'A'
-  if (n.value >= 200) return 'B'
-  if (n.value >= 50)  return 'C'
-  return 'D'
+/** Label fiabilité humain */
+const reliabilityBadge = computed((): { label: string; cls: string } => {
+  if (n.value >= 500) return { label: 'Représentatif ★', cls: 'bg-emerald-100 text-emerald-800' }
+  if (n.value >= 200) return { label: 'Résultats fiables ✓', cls: 'bg-blue-100 text-blue-800' }
+  if (n.value >= 50)  return { label: 'Tendance en cours 📊', cls: 'bg-amber-100 text-amber-800' }
+  return { label: 'Début de l\'enquête 🌱', cls: 'bg-gray-100 text-gray-600' }
 })
-
-const reliabilityColor = computed(() => ({
-  A: 'bg-emerald-100 text-emerald-800',
-  B: 'bg-amber-100 text-amber-800',
-  C: 'bg-red-100 text-red-800',
-  D: 'bg-gray-100 text-gray-600',
-}[reliabilityScore.value]))
 
 /** Calcul résultats par option pour la première question */
 const q1Options = computed(() => {
@@ -189,9 +179,6 @@ function goParticipate() {
   router.push(`/participer/${props.id}`)
 }
 
-function downloadPdf() {
-  generateReport(props.id, survey.value!, responses.value, q1Options.value, demoBreakdown.value, biasFlags.value)
-}
 </script>
 
 <template>
@@ -227,13 +214,9 @@ function downloadPdf() {
           <span v-if="marginError" class="text-gray-500">± {{ marginError }}%</span>
           <span
             class="px-2 py-0.5 rounded-full text-xs font-bold"
-            :class="reliabilityColor"
-          >Score {{ reliabilityScore }}</span>
+            :class="reliabilityBadge.cls"
+          >{{ reliabilityBadge.label }}</span>
         </div>
-
-        <p class="text-xs text-gray-400 mt-2">
-          Score A = n>500 profil équilibré · B = n>200 · C = n>50 · D = indicatif uniquement
-        </p>
       </div>
 
       <!-- ── Résultats globaux (donut + barres) ─────────────────────────── -->
@@ -325,15 +308,10 @@ function downloadPdf() {
         </button>
       </div>
 
-      <!-- ── Bouton PDF ─────────────────────────────────────────────────── -->
-      <button
-        class="w-full flex items-center justify-center gap-2 bg-gray-900 hover:bg-gray-800 text-white px-6 py-3 rounded-2xl font-semibold text-sm transition disabled:opacity-50"
-        :disabled="generating"
-        @click="downloadPdf"
-      >
-        <span v-if="generating">Génération en cours…</span>
-        <span v-else>📄 Télécharger le rapport PDF</span>
-      </button>
+      <!-- Export PDF — abonnement pro -->
+      <p class="text-gray-400 text-xs text-center italic">
+        Export PDF disponible avec un abonnement professionnel
+      </p>
 
     </div>
   </div>

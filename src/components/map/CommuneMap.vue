@@ -184,13 +184,26 @@ onMounted(async () => {
   communesStore.loadParticipation()
 
   map = L.map(mapEl.value, {
-    center: [16.25, -61.55],
-    zoom: 10,
+    center: [16.3, -61.4],
+    zoom: 9,
     zoomControl: false,
     attributionControl: false,
     minZoom: 7,
     maxZoom: 14,
   })
+
+  // Labels visibles seulement si zoom >= 10
+  function updateLabelVisibility() {
+    if (!map) return
+    const container = map.getContainer()
+    if (map.getZoom() >= 10) {
+      container.classList.remove('labels-hidden')
+    } else {
+      container.classList.add('labels-hidden')
+    }
+  }
+  map.on('zoomend', updateLabelVisibility)
+  updateLabelVisibility()
 
   // Tuiles CartoDB Voyager — fond coloré naturel avec relief, routes, végétation
   L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
@@ -290,6 +303,12 @@ defineExpose({ resetSelection })
     <LegendPanel />
 
     <OnboardingTooltip />
+
+    <!-- Vignette : met en exergue la Guadeloupe, assombrit les bords -->
+    <div
+      class="absolute inset-0 pointer-events-none z-[500]"
+      style="background: radial-gradient(ellipse 55% 65% at 52% 52%, transparent 60%, rgba(180,210,220,0.45) 100%);"
+    />
   </div>
 </template>
 
@@ -322,6 +341,9 @@ defineExpose({ resetSelection })
   0%   { transform: scale(0.8); opacity: 1; }
   100% { transform: scale(2.2); opacity: 0; }
 }
+
+/* Labels communes — masqués si zoom < 10 */
+.labels-hidden .commune-label { display: none !important; }
 
 /* Éléments décoratifs SVG */
 .sea-deco {

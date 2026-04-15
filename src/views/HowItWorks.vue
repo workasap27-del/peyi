@@ -4,114 +4,104 @@ const router = useRouter()
 </script>
 
 <template>
-  <div class="min-h-dvh bg-gray-950 text-white">
+  <div class="min-h-screen bg-gray-950 flex flex-col pb-24">
+
     <!-- Header -->
-    <div class="px-5 pt-10 pb-6">
-      <button class="flex items-center gap-2 text-gray-400 mb-6 text-sm" @click="router.back()">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-        </svg>
-        Retour
-      </button>
-
-      <h1 class="text-2xl font-bold text-center">Comment ça marche ?</h1>
-      <p class="text-gray-400 text-center text-sm mt-2">
-        Péyi connecte les citoyens guadeloupéens à leurs élus grâce à la donnée d'opinion en temps réel.
-      </p>
+    <div class="px-6 pt-10 pb-6">
+      <h1 class="text-white text-3xl font-black leading-tight">Comment<br>ça marche ?</h1>
+      <p class="text-gray-400 text-[15px] mt-2">Simple. Anonyme. Utile.</p>
     </div>
 
-    <!-- Steps -->
-    <div class="px-5 space-y-5 pb-24">
+    <!-- Étapes -->
+    <div class="flex-1 px-6 space-y-6">
 
-      <!-- Step 1 -->
-      <div class="bg-gray-900 rounded-2xl p-6 border border-gray-800 step-card" style="animation-delay: 0s;">
-        <div class="flex items-start gap-4">
-          <div class="w-12 h-12 bg-emerald-500/20 rounded-2xl flex items-center justify-center shrink-0">
-            <!-- Icône carte avec curseur -->
-            <svg class="w-6 h-6 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
-                d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-              <circle cx="15" cy="13" r="2" fill="currentColor" opacity="0.6" />
-            </svg>
-          </div>
-          <div class="flex-1">
-            <span class="text-xs font-bold text-emerald-400 uppercase tracking-wider">Étape 1</span>
-            <h2 class="text-lg font-bold mb-2 mt-1">Explore ta commune</h2>
-            <p class="text-gray-400 text-sm leading-relaxed">
-              La carte montre en temps réel la participation citoyenne dans chaque commune de Guadeloupe.
-            </p>
-          </div>
+      <!-- Étape 1 -->
+      <div class="how-step bg-gray-900 rounded-3xl p-6 border border-gray-800" style="animation-delay: 0ms;">
+        <div class="w-16 h-16 rounded-2xl bg-emerald-500/15 flex items-center justify-center mb-5">
+          <svg viewBox="0 0 48 48" class="w-9 h-9" fill="none">
+            <rect x="6" y="10" width="36" height="26" rx="4" fill="#10b981" opacity="0.2"/>
+            <rect x="6" y="10" width="36" height="26" rx="4" stroke="#10b981" stroke-width="2"/>
+            <rect x="10" y="14" width="14" height="10" rx="2" fill="#10b981" opacity="0.5"/>
+            <rect x="26" y="14" width="12" height="10" rx="2" fill="#34d399" opacity="0.4"/>
+            <rect x="10" y="27" width="10" height="6" rx="2" fill="#6ee7b7" opacity="0.4"/>
+            <rect x="22" y="27" width="16" height="6" rx="2" fill="#10b981" opacity="0.3"/>
+            <g class="cursor-anim">
+              <circle cx="28" cy="20" r="3" fill="#10b981"/>
+              <circle cx="28" cy="20" r="6" fill="#10b981" opacity="0.2"/>
+            </g>
+          </svg>
         </div>
+        <span class="text-emerald-400 text-xs font-bold uppercase tracking-widest">Étape 1</span>
+        <h2 class="text-white text-xl font-black mt-1 mb-2">Ta commune sur la carte</h2>
+        <p class="text-gray-400 text-[15px] leading-relaxed">
+          Vois en temps réel ce que pensent tes voisins, quartier par quartier. La carte s'anime avec chaque nouvelle voix.
+        </p>
       </div>
 
-      <!-- Step 2 -->
-      <div class="bg-gray-900 rounded-2xl p-6 border border-gray-800 step-card" style="animation-delay: 0.15s;">
-        <div class="flex items-start gap-4">
-          <div class="w-12 h-12 bg-blue-500/20 rounded-2xl flex items-center justify-center shrink-0">
-            <!-- Icône bulle dialogue avec check -->
-            <svg class="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
-                d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4" />
-            </svg>
-          </div>
-          <div class="flex-1">
-            <span class="text-xs font-bold text-blue-400 uppercase tracking-wider">Étape 2</span>
-            <h2 class="text-lg font-bold mb-2 mt-1">Réponds en 2 minutes</h2>
-            <p class="text-gray-400 text-sm leading-relaxed">
-              Un sondage, quelques questions simples, ton avis compte autant que celui du voisin.
-            </p>
-          </div>
+      <!-- Étape 2 -->
+      <div class="how-step bg-gray-900 rounded-3xl p-6 border border-gray-800" style="animation-delay: 120ms;">
+        <div class="w-16 h-16 rounded-2xl bg-blue-500/15 flex items-center justify-center mb-5">
+          <svg viewBox="0 0 48 48" class="w-9 h-9" fill="none">
+            <path d="M8 10C8 7.8 9.8 6 12 6H36C38.2 6 40 7.8 40 10V28C40 30.2 38.2 32 36 32H20L12 42V32H12C9.8 32 8 30.2 8 28V10Z" fill="#3b82f6" opacity="0.15" stroke="#3b82f6" stroke-width="2"/>
+            <circle cx="17" cy="19" r="2.5" fill="#60a5fa"/>
+            <circle cx="24" cy="19" r="2.5" fill="#3b82f6"/>
+            <circle cx="31" cy="19" r="2.5" fill="#93c5fd"/>
+          </svg>
         </div>
+        <span class="text-blue-400 text-xs font-bold uppercase tracking-widest">Étape 2</span>
+        <h2 class="text-white text-xl font-black mt-1 mb-2">Ton avis en 2 minutes</h2>
+        <p class="text-gray-400 text-[15px] leading-relaxed">
+          Une question, un tap. Anonyme, sans inscription, sans jugement. Tu peux t'arrêter quand tu veux.
+        </p>
       </div>
 
-      <!-- Step 3 -->
-      <div class="bg-gray-900 rounded-2xl p-6 border border-gray-800 step-card" style="animation-delay: 0.3s;">
-        <div class="flex items-start gap-4">
-          <div class="w-12 h-12 bg-amber-500/20 rounded-2xl flex items-center justify-center shrink-0">
-            <!-- Icône graphique avec étoile -->
-            <svg class="w-6 h-6 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
-                d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-                d="M19.5 6.5l-1 2.5-2.5.5 1.8 1.7-.4 2.5 2.1-1.2 2.1 1.2-.4-2.5 1.8-1.7-2.5-.5z" fill="currentColor" opacity="0.5" />
-            </svg>
-          </div>
-          <div class="flex-1">
-            <span class="text-xs font-bold text-amber-400 uppercase tracking-wider">Étape 3</span>
-            <h2 class="text-lg font-bold mb-2 mt-1">Tes élus voient les résultats</h2>
-            <p class="text-gray-400 text-sm leading-relaxed">
-              Les données sont transmises aux collectivités pour éclairer leurs décisions.
-            </p>
-          </div>
+      <!-- Étape 3 -->
+      <div class="how-step bg-gray-900 rounded-3xl p-6 border border-gray-800" style="animation-delay: 240ms;">
+        <div class="w-16 h-16 rounded-2xl bg-orange-500/15 flex items-center justify-center mb-5">
+          <svg viewBox="0 0 48 48" class="w-9 h-9" fill="none">
+            <path d="M24 6L27.5 17H39L29.5 23.5L33 34.5L24 28L15 34.5L18.5 23.5L9 17H20.5L24 6Z" fill="#f97316" opacity="0.8"/>
+            <circle cx="24" cy="42" r="2" fill="#fb923c" opacity="0.4"/>
+            <circle cx="8" cy="22" r="1.5" fill="#fdba74" opacity="0.4"/>
+            <circle cx="40" cy="22" r="1.5" fill="#fdba74" opacity="0.4"/>
+          </svg>
         </div>
+        <span class="text-orange-400 text-xs font-bold uppercase tracking-widest">Étape 3</span>
+        <h2 class="text-white text-xl font-black mt-1 mb-2">Ta voix façonne demain</h2>
+        <p class="text-gray-400 text-[15px] leading-relaxed">
+          Tes réponses alimentent des données réelles transmises aux décideurs locaux. Ici, chaque avis compte autant que celui du maire.
+        </p>
       </div>
-
-      <!-- CTA -->
-      <RouterLink
-        to="/"
-        class="block w-full py-4 rounded-2xl bg-emerald-600 text-white font-bold text-center text-base transition hover:bg-emerald-700 active:scale-[0.98]"
-      >
-        Voir la carte →
-      </RouterLink>
     </div>
+
+    <!-- CTA -->
+    <div class="px-6 pt-8">
+      <button
+        class="w-full py-4 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-lg transition active:scale-[0.98]"
+        @click="router.push('/')"
+      >Découvrir la carte →</button>
+      <p class="text-gray-500 text-xs text-center mt-3">100% gratuit · Anonyme · Sans compte</p>
+    </div>
+
   </div>
 </template>
 
 <style scoped>
-@keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.how-step {
+  animation: slideUp 0.5s ease-out both;
 }
 
-.step-card {
-  animation: slideUp 0.5s ease forwards;
-  opacity: 0;
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.cursor-anim {
+  animation: cursorPulse 2s ease-in-out infinite;
+  transform-origin: 28px 20px;
+}
+
+@keyframes cursorPulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.4); opacity: 0.5; }
 }
 </style>

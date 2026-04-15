@@ -10,10 +10,15 @@ onMounted(async () => {
   if (!store.surveys.length) await store.loadSurveys()
 })
 
-// Sondages globaux actifs (commune_id null), triés par date décroissante
+// Sondages flash uniquement (recurrence_type flash_daily ou null/undefined)
+// Exclut les baromètres trimestriels permanent_quarterly
 const globalSurveys = computed(() =>
   store.surveys
-    .filter(s => !s.commune_id && s.is_active !== false)
+    .filter(s =>
+      !s.commune_id &&
+      s.is_active !== false &&
+      s.recurrence_type !== 'permanent_quarterly'
+    )
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
 )
 

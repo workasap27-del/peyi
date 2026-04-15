@@ -98,6 +98,7 @@ export interface Survey {
   is_active: boolean
   ends_at: string | null
   created_at: string
+  recurrence_type?: 'flash_daily' | 'permanent_quarterly' | 'thematic_monthly' | null
 }
 
 export type AgeGroup = '15-24' | '25-34' | '35-49' | '50-64' | '65+'

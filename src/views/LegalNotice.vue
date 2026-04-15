@@ -4,84 +4,108 @@ const router = useRouter()
 </script>
 
 <template>
-  <div class="min-h-dvh bg-white">
-    <div class="px-5 pt-10 pb-24 max-w-2xl mx-auto">
-      <button class="flex items-center gap-2 text-gray-400 mb-6 text-sm" @click="router.back()">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-        </svg>
-        Retour
-      </button>
+  <div class="min-h-screen bg-white pb-24">
 
-      <h1 class="text-2xl font-bold text-gray-900 mb-1">Mentions légales</h1>
-      <p class="text-sm text-gray-400 mb-8">Dernière mise à jour : avril 2026</p>
+    <!-- Header -->
+    <div class="sticky top-0 bg-white border-b border-gray-100 px-4 py-3 flex items-center gap-3 z-10">
+      <button class="text-gray-500 hover:text-gray-800 text-sm transition" @click="router.back()">← Retour</button>
+      <span class="text-gray-300">|</span>
+      <span class="text-sm font-medium text-gray-700">Mentions légales</span>
+    </div>
 
-      <div class="space-y-8 text-sm text-gray-700 leading-relaxed divide-y divide-gray-100">
+    <div class="max-w-2xl mx-auto px-5 pt-8 pb-16 space-y-8 text-[15px]">
 
-        <section class="pt-4 first:pt-0">
-          <h2 class="font-bold text-gray-900 text-base mb-3">1. Éditeur</h2>
-          <p><strong>Nom :</strong> Mickael BLANCHEDENT</p>
-          <p class="mt-1"><strong>Adresse :</strong> Évreux (27000), France</p>
-          <p class="mt-1"><strong>Contact :</strong> <a href="mailto:contact@peyi.fr" class="text-emerald-600 underline">contact@peyi.fr</a></p>
-        </section>
+      <h1 class="text-2xl font-bold text-gray-900">Mentions légales</h1>
 
-        <section class="pt-6">
-          <h2 class="font-bold text-gray-900 text-base mb-3">2. Hébergement</h2>
-          <p><strong>Vercel Inc.</strong></p>
-          <p class="mt-1">340 Pine Street, Suite 900</p>
-          <p>San Francisco, CA 94104, USA</p>
-          <p class="mt-1"><a href="https://vercel.com" target="_blank" rel="noopener" class="text-emerald-600 underline">vercel.com</a></p>
-        </section>
+      <!-- Section 1 — Éditeur -->
+      <section>
+        <h2 class="text-lg font-bold text-gray-900 mb-3 border-b border-gray-100 pb-2">1. Éditeur du site</h2>
+        <dl class="space-y-2 text-gray-700">
+          <div class="flex gap-2"><dt class="font-semibold text-gray-500 w-36 shrink-0">Nom :</dt><dd>NOM PRÉNOM — À COMPLÉTER OBLIGATOIREMENT, requis par la loi LCEN</dd></div>
+          <div class="flex gap-2"><dt class="font-semibold text-gray-500 w-36 shrink-0">Adresse :</dt><dd>ADRESSE DE DOMICILIATION — À COMPLÉTER</dd></div>
+          <div class="flex gap-2"><dt class="font-semibold text-gray-500 w-36 shrink-0">Email :</dt><dd><a href="mailto:contact@peyi.fr" class="text-emerald-600 underline">contact@peyi.fr</a></dd></div>
+          <div class="flex gap-2"><dt class="font-semibold text-gray-500 w-36 shrink-0">Forme juridique :</dt><dd>SASU / EI — À COMPLÉTER</dd></div>
+        </dl>
+        <p class="mt-3 text-gray-400 text-sm italic">
+          L'identité de l'éditeur est requise par la loi n°2004-575 (LCEN). Ces informations doivent être complétées avant toute diffusion publique.
+        </p>
+      </section>
 
-        <section class="pt-6">
-          <h2 class="font-bold text-gray-900 text-base mb-3">3. Données personnelles</h2>
-          <p><strong>Responsable du traitement :</strong> Mickael BLANCHEDENT</p>
+      <!-- Section 2 — Hébergement -->
+      <section>
+        <h2 class="text-lg font-bold text-gray-900 mb-3 border-b border-gray-100 pb-2">2. Hébergement</h2>
+        <p class="text-gray-700">
+          Ce site est hébergé par <strong>Vercel Inc.</strong>, 340 Pine Street Suite 900, San Francisco CA 94104, États-Unis.<br>
+          <a href="https://vercel.com" target="_blank" rel="noopener" class="text-emerald-600 underline">vercel.com</a>
+        </p>
+      </section>
 
-          <div class="mt-4 space-y-3">
-            <div class="bg-gray-50 rounded-xl p-4">
-              <p class="font-semibold text-gray-800">Données collectées</p>
-              <ul class="text-gray-500 mt-1 space-y-1 list-disc list-inside text-xs">
-                <li>Identifiant anonyme local (stocké uniquement dans votre navigateur, non transmis au serveur)</li>
-                <li>Réponses anonymisées aux sondages</li>
-                <li>Démographie facultative : groupe d'âge, genre</li>
-                <li>Adresse IP traitée par les serveurs Vercel</li>
-              </ul>
-            </div>
-            <div class="bg-gray-50 rounded-xl p-4">
-              <p class="font-semibold text-gray-800">Finalité</p>
-              <p class="text-gray-500 mt-1 text-xs">Amélioration des politiques publiques locales et recherche d'opinion citoyenne en Guadeloupe.</p>
-            </div>
-            <div class="bg-gray-50 rounded-xl p-4">
-              <p class="font-semibold text-gray-800">Base légale</p>
-              <p class="text-gray-500 mt-1 text-xs">Intérêt légitime (art. 6-1-f RGPD)</p>
-            </div>
-            <div class="bg-gray-50 rounded-xl p-4">
-              <p class="font-semibold text-gray-800">Durée de conservation</p>
-              <p class="text-gray-500 mt-1 text-xs">3 ans à compter de la collecte, puis suppression automatique.</p>
-            </div>
-          </div>
-        </section>
+      <!-- Section 3 — Propriété intellectuelle -->
+      <section>
+        <h2 class="text-lg font-bold text-gray-900 mb-3 border-b border-gray-100 pb-2">3. Propriété intellectuelle</h2>
+        <p class="text-gray-700 leading-relaxed">
+          La marque Péyi, le contenu éditorial et le code source sont la propriété exclusive de l'éditeur.
+          Toute reproduction partielle ou totale sans autorisation écrite préalable est interdite.
+        </p>
+      </section>
 
-        <section class="pt-6">
-          <h2 class="font-bold text-gray-900 text-base mb-3">4. Vos droits</h2>
-          <p>Conformément au RGPD, vous disposez d'un droit d'accès, de rectification, d'effacement, d'opposition et de portabilité de vos données.</p>
-          <p class="mt-2">Pour exercer ces droits :</p>
-          <a href="mailto:privacy@peyi.fr" class="inline-block mt-2 text-emerald-600 font-semibold underline">privacy@peyi.fr</a>
-          <p class="text-gray-400 mt-2 text-xs">Réponse sous 30 jours.</p>
-        </section>
+      <!-- Section 4 — Données personnelles -->
+      <section>
+        <h2 class="text-lg font-bold text-gray-900 mb-3 border-b border-gray-100 pb-2">4. Données personnelles</h2>
+        <div class="space-y-3 text-gray-700 leading-relaxed">
+          <p><strong>Responsable du traitement :</strong> NOM — À COMPLÉTER</p>
+          <p><strong>Données collectées :</strong></p>
+          <ul class="list-disc pl-5 space-y-1 text-gray-600">
+            <li>Identifiant anonyme navigateur stocké en localStorage, non transmis au serveur</li>
+            <li>Réponses aux sondages, anonymisées (aucun lien avec l'identité)</li>
+            <li>Démographie facultative : commune, tranche d'âge, genre, situation professionnelle, secteur</li>
+            <li>Adresse IP traitée par l'hébergeur Vercel lors des requêtes réseau</li>
+          </ul>
+          <p><strong>Finalité :</strong> recherche d'opinion citoyenne et aide à la décision publique locale en Guadeloupe.</p>
+          <p><strong>Base légale :</strong> intérêt légitime — article 6-1-f du RGPD.</p>
+          <p><strong>Durée de conservation :</strong> 3 ans à compter de la collecte.</p>
+          <p><strong>Tiers :</strong> aucune donnée vendue ou cédée à des tiers. Aucun cookie publicitaire.</p>
+        </div>
+      </section>
 
-        <section class="pt-6">
-          <h2 class="font-bold text-gray-900 text-base mb-3">5. Cookies et traceurs</h2>
-          <p>Péyi n'utilise <strong>aucun cookie tiers</strong> ni traceur publicitaire.</p>
-          <p class="mt-2">Seul un identifiant anonyme local est stocké dans le <code class="bg-gray-100 px-1 rounded text-xs">localStorage</code> de votre navigateur afin de garantir l'unicité de votre vote. Cet identifiant ne quitte jamais votre appareil.</p>
-        </section>
+      <!-- Section 5 — Droits RGPD -->
+      <section>
+        <h2 class="text-lg font-bold text-gray-900 mb-3 border-b border-gray-100 pb-2">5. Vos droits (RGPD)</h2>
+        <p class="text-gray-700 leading-relaxed">
+          Conformément au Règlement (UE) 2016/679, vous disposez des droits suivants :
+          <strong>accès, rectification, effacement, opposition, portabilité</strong> de vos données.
+        </p>
+        <p class="text-gray-700 mt-2">
+          Pour exercer ces droits : <a href="mailto:privacy@peyi.fr" class="text-emerald-600 underline">privacy@peyi.fr</a> — délai de réponse 30 jours.
+        </p>
+        <p class="text-gray-700 mt-2">
+          Vous disposez également du droit de déposer une réclamation auprès de la
+          <a href="https://www.cnil.fr" target="_blank" rel="noopener" class="text-emerald-600 underline">CNIL</a>.
+        </p>
+      </section>
 
-        <section class="pt-6">
-          <h2 class="font-bold text-gray-900 text-base mb-3">6. Contact DPO</h2>
-          <a href="mailto:privacy@peyi.fr" class="text-emerald-600 font-semibold underline">privacy@peyi.fr</a>
-        </section>
+      <!-- Section 6 — Cookies -->
+      <section>
+        <h2 class="text-lg font-bold text-gray-900 mb-3 border-b border-gray-100 pb-2">6. Cookies et traceurs</h2>
+        <p class="text-gray-700 leading-relaxed">
+          Péyi utilise uniquement un <strong>identifiant anonyme local</strong> (localStorage) pour garantir l'unicité du vote.
+          Aucun cookie tiers, aucune régie publicitaire, aucun traceur de navigation n'est utilisé.
+        </p>
+      </section>
 
-      </div>
+      <!-- Section 7 — Contact -->
+      <section>
+        <h2 class="text-lg font-bold text-gray-900 mb-3 border-b border-gray-100 pb-2">7. Contact</h2>
+        <p class="text-gray-700">
+          <a href="mailto:contact@peyi.fr" class="text-emerald-600 underline">contact@peyi.fr</a> — réponse sous 48h ouvrées.
+        </p>
+      </section>
+
+      <!-- Pied de page légal -->
+      <p class="text-gray-400 text-xs text-center pt-4 border-t border-gray-100">
+        Dernière mise à jour : avril 2026 · Conforme à la loi n°2004-575 du 21 juin 2004 (LCEN) et au Règlement (UE) 2016/679 (RGPD).
+      </p>
+
     </div>
   </div>
 </template>
