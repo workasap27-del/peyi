@@ -76,7 +76,7 @@ export interface ReportInsert {
 }
 
 // ── Sondages ─────────────────────────────────────────────────────────────────
-export type QuestionType = 'single' | 'multiple' | 'scale' | 'text'
+export type QuestionType = 'single' | 'radio' | 'multiple' | 'scale' | 'text'
 
 export interface SurveyQuestion {
   id: string
@@ -84,6 +84,8 @@ export interface SurveyQuestion {
   label: string
   options?: string[]
   required?: boolean
+  min?: number
+  max?: number
 }
 
 export interface Survey {

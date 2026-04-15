@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import type { Survey, SurveyQuestion, AgeGroup, Gender, SurveyDemographics } from '@/types'
 import { useSurveysStore } from '@/stores/surveys'
@@ -19,10 +19,13 @@ const direction = ref<'forward' | 'back'>('forward')
 const submitting = ref(false)
 const phase = ref<'questions' | 'demo' | 'done'>('questions')
 
-// Init scales à 5
+// Init scales à valeur médiane
 onMounted(() => {
   for (const q of props.survey.questions) {
-    if (q.type === 'scale') answers.value[q.id] = 5
+    if (q.type === 'scale') {
+      const mid = Math.ceil(((q.min ?? 1) + (q.max ?? 5)) / 2)
+      answers.value[q.id] = mid
+    }
   }
 })
 
@@ -66,10 +69,10 @@ function prev() {
   }
 }
 
-// Auto-avance pour les questions single/scale
+// Clic radio → sélection + avance automatique après 300ms
 function selectSingle(questionId: string, opt: string) {
   answers.value[questionId] = opt
-  setTimeout(next, 350)
+  setTimeout(next, 300)
 }
 
 function toggleMultiple(questionId: string, opt: string) {
@@ -79,31 +82,10 @@ function toggleMultiple(questionId: string, opt: string) {
     : [...cur, opt]
 }
 
-// ── Swipe ─────────────────────────────────────────────────────────────────────
-const touchStartX = ref(0)
-const touchStartY = ref(0)
-
-function onTouchStart(e: TouchEvent) {
-  touchStartX.value = e.touches[0].clientX
-  touchStartY.value = e.touches[0].clientY
+// Clic sur bouton numéroté scale → sélection
+function selectScale(questionId: string, val: number) {
+  answers.value[questionId] = val
 }
-
-function onTouchEnd(e: TouchEvent) {
-  const dx = e.changedTouches[0].clientX - touchStartX.value
-  const dy = Math.abs(e.changedTouches[0].clientY - touchStartY.value)
-  if (dy > 60) return // scroll vertical → ignorer
-  if (dx < -60) next()
-  if (dx > 60) prev()
-}
-
-// Touches clavier
-function onKeyDown(e: KeyboardEvent) {
-  if (e.key === 'ArrowRight' || e.key === 'Enter') next()
-  if (e.key === 'ArrowLeft' || e.key === 'Escape') prev()
-}
-
-onMounted(() => window.addEventListener('keydown', onKeyDown))
-onUnmounted(() => window.removeEventListener('keydown', onKeyDown))
 
 // ── Soumission ────────────────────────────────────────────────────────────────
 async function submit() {
@@ -116,9 +98,6 @@ async function submit() {
       demographics: demographics.value,
     })
     phase.value = 'done'
-
-    // Recharger les données de participation depuis Supabase
-    // et mémoriser la commune de l'utilisateur pour la pulse animation
     const commune = (demographics.value as any)?.commune ?? null
     communesStore.triggerRefresh(commune)
   } finally {
@@ -126,11 +105,11 @@ async function submit() {
   }
 }
 
-// Emoji scale
+// Emoji scale (pour affichage au-dessus des boutons)
 const scaleEmojis = ['😠', '😟', '😐', '🙂', '😊', '😄', '🤩']
-function scaleEmoji(val: number): string {
-  const idx = Math.round(((Number(val) - 1) / 9) * (scaleEmojis.length - 1))
-  return scaleEmojis[idx]
+function scaleEmoji(val: number, max: number): string {
+  const idx = Math.round(((Number(val) - 1) / (max - 1)) * (scaleEmojis.length - 1))
+  return scaleEmojis[Math.max(0, Math.min(idx, scaleEmojis.length - 1))]
 }
 
 const ageGroups: AgeGroup[] = ['15-24', '25-34', '35-49', '50-64', '65+']
@@ -143,11 +122,7 @@ const genderOpts: { v: Gender; l: string }[] = [
 </script>
 
 <template>
-  <div
-    class="fixed inset-0 z-50 bg-gray-950 flex flex-col"
-    @touchstart.passive="onTouchStart"
-    @touchend.passive="onTouchEnd"
-  >
+  <div class="fixed inset-0 z-50 bg-gray-950 flex flex-col">
     <!-- ── Barre de progression ── -->
     <div class="flex gap-1 px-4 pt-safe pt-4 pb-0 shrink-0">
       <div
@@ -175,9 +150,7 @@ const genderOpts: { v: Gender; l: string }[] = [
 
       <div class="text-center">
         <p class="text-white/50 text-xs font-medium">
-          <span v-if="phase === 'questions'">
-            {{ currentIndex + 1 }} / {{ questions.length }}
-          </span>
+          <span v-if="phase === 'questions'">{{ currentIndex + 1 }} / {{ questions.length }}</span>
           <span v-else-if="phase === 'demo'">Votre profil</span>
           <span v-else>Terminé</span>
         </p>
@@ -189,9 +162,7 @@ const genderOpts: { v: Gender; l: string }[] = [
       <button
         class="text-white/40 hover:text-white/70 text-xs p-1 transition"
         @click="router.back()"
-      >
-        ✕
-      </button>
+      >✕</button>
     </div>
 
     <!-- ── Contenu principal ── -->
@@ -204,14 +175,14 @@ const genderOpts: { v: Gender; l: string }[] = [
           :key="currentIndex"
           class="flex-1 flex flex-col px-6 pt-8 pb-4"
         >
-          <!-- Question -->
           <div class="flex-1 flex flex-col justify-center">
+            <!-- Question -->
             <p class="text-white text-2xl font-bold leading-snug mb-8 text-center">
               {{ current.label }}
             </p>
 
-            <!-- Single choice -->
-            <div v-if="current.type === 'single'" class="space-y-3">
+            <!-- ── Radio (single choice) ── -->
+            <div v-if="current.type === 'single' || current.type === 'radio'" class="space-y-3">
               <button
                 v-for="opt in current.options"
                 :key="opt"
@@ -220,12 +191,10 @@ const genderOpts: { v: Gender; l: string }[] = [
                   ? 'bg-emerald-600 border-emerald-500 scale-[1.02]'
                   : 'bg-white/10 border-white/20 hover:bg-white/20 active:scale-[0.98]'"
                 @click="selectSingle(current.id, opt)"
-              >
-                {{ opt }}
-              </button>
+              >{{ opt }}</button>
             </div>
 
-            <!-- Multiple choice -->
+            <!-- ── Choix multiples ── -->
             <div v-else-if="current.type === 'multiple'" class="space-y-3">
               <button
                 v-for="opt in current.options"
@@ -242,50 +211,59 @@ const genderOpts: { v: Gender; l: string }[] = [
                     ? 'bg-white border-white'
                     : 'border-white/40'"
                 >
-                  <svg v-if="(answers[current.id] as string[] ?? []).includes(opt)" class="w-3 h-3 text-emerald-600" viewBox="0 0 12 12" fill="currentColor">
-                    <path d="M2 6l3 3 5-5" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+                  <svg v-if="(answers[current.id] as string[] ?? []).includes(opt)" class="w-3 h-3 text-emerald-600" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M2 6l3 3 5-5"/>
                   </svg>
                 </span>
                 {{ opt }}
               </button>
 
-              <!-- Bouton suivant pour multiple -->
               <button
-                v-if="(answers[current.id] as string[] ?? []).length > 0"
-                class="w-full py-4 rounded-2xl bg-white text-gray-900 font-bold text-base mt-2 transition hover:bg-gray-100 active:scale-[0.98]"
+                class="w-full py-4 rounded-2xl font-bold text-base mt-2 transition active:scale-[0.98]"
+                :class="(answers[current.id] as string[] ?? []).length > 0
+                  ? 'bg-emerald-500 text-white hover:bg-emerald-400'
+                  : 'bg-white/10 text-white/40 cursor-not-allowed'"
+                :disabled="(answers[current.id] as string[] ?? []).length === 0"
                 @click="next"
-              >
-                Continuer →
-              </button>
+              >Continuer →</button>
             </div>
 
-            <!-- Scale — visuel émoji -->
+            <!-- ── Échelle : boutons numérotés ── -->
             <div v-else-if="current.type === 'scale'" class="space-y-6">
-              <div class="text-center text-6xl transition-all duration-200">
-                {{ scaleEmoji(Number(answers[current!.id] ?? 5)) }}
+              <!-- Emoji dynamique -->
+              <div class="text-center text-5xl transition-all duration-200">
+                {{ scaleEmoji(Number(answers[current!.id] ?? current!.min ?? 1), current!.max ?? 5) }}
               </div>
-              <input
-                type="range"
-                min="1"
-                max="10"
-                class="w-full h-2 rounded-full appearance-none cursor-pointer"
-                style="accent-color: #10b981"
-                :value="answers[current!.id] ?? 5"
-                @input="(e) => { answers[current!.id] = Number((e.target as HTMLInputElement).value) }"
-              />
-              <div class="flex justify-between text-white/40 text-xs">
-                <span>Très insatisfait</span>
-                <span>Très satisfait</span>
+
+              <!-- Boutons numérotés -->
+              <div class="flex gap-2 justify-center flex-wrap">
+                <button
+                  v-for="n in Array.from({ length: (current!.max ?? 5) - (current!.min ?? 1) + 1 }, (_, i) => (current!.min ?? 1) + i)"
+                  :key="n"
+                  class="w-11 h-11 rounded-xl font-bold text-sm transition-all duration-150 active:scale-95"
+                  :class="answers[current.id] === n
+                    ? 'bg-emerald-500 text-white scale-110 shadow-lg shadow-emerald-500/30'
+                    : 'bg-white/10 text-white hover:bg-white/20 border border-white/20'"
+                  @click="selectScale(current.id, n)"
+                >{{ n }}</button>
               </div>
+
+              <!-- Labels min/max -->
+              <div class="flex justify-between text-white/40 text-xs px-1">
+                <span>{{ current.min ?? 1 }} — Très insatisfait</span>
+                <span>Très satisfait — {{ current.max ?? 5 }}</span>
+              </div>
+
               <button
-                class="w-full py-4 rounded-2xl bg-white text-gray-900 font-bold text-base transition hover:bg-gray-100 active:scale-[0.98]"
+                class="w-full py-4 rounded-2xl font-bold text-base transition active:scale-[0.98]"
+                :class="answers[current.id] !== undefined
+                  ? 'bg-emerald-500 text-white hover:bg-emerald-400'
+                  : 'bg-white text-gray-900 hover:bg-gray-100'"
                 @click="next"
-              >
-                Continuer →
-              </button>
+              >Continuer →</button>
             </div>
 
-            <!-- Text libre -->
+            <!-- ── Texte libre ── -->
             <div v-else-if="current.type === 'text'" class="space-y-4">
               <textarea
                 v-model="answers[current.id] as string"
@@ -296,16 +274,9 @@ const genderOpts: { v: Gender; l: string }[] = [
               <button
                 class="w-full py-4 rounded-2xl bg-white text-gray-900 font-bold text-base transition hover:bg-gray-100"
                 @click="next"
-              >
-                {{ answers[current.id] ? 'Continuer →' : 'Passer →' }}
-              </button>
+              >{{ answers[current.id] ? 'Continuer →' : 'Passer →' }}</button>
             </div>
           </div>
-
-          <!-- Hint swipe -->
-          <p class="text-center text-white/20 text-xs mt-4">
-            Swipe → ou ← pour naviguer
-          </p>
         </div>
       </Transition>
 
@@ -330,9 +301,7 @@ const genderOpts: { v: Gender; l: string }[] = [
                   ? 'bg-emerald-600 border-emerald-500 text-white'
                   : 'bg-white/10 border-white/20 text-white hover:bg-white/20'"
                 @click="demographics.age_group = demographics.age_group === ag ? undefined : ag"
-              >
-                {{ ag }} ans
-              </button>
+              >{{ ag }} ans</button>
             </div>
           </div>
 
@@ -348,9 +317,7 @@ const genderOpts: { v: Gender; l: string }[] = [
                   ? 'bg-emerald-600 border-emerald-500 text-white'
                   : 'bg-white/10 border-white/20 text-white hover:bg-white/20'"
                 @click="demographics.gender = demographics.gender === g.v ? undefined : g.v"
-              >
-                {{ g.l }}
-              </button>
+              >{{ g.l }}</button>
             </div>
           </div>
         </div>
@@ -359,15 +326,11 @@ const genderOpts: { v: Gender; l: string }[] = [
           :disabled="submitting"
           class="w-full py-4 rounded-2xl bg-emerald-600 text-white font-bold text-base transition hover:bg-emerald-500 disabled:opacity-50"
           @click="submit"
-        >
-          {{ submitting ? 'Envoi…' : 'Envoyer mes réponses 🎉' }}
-        </button>
+        >{{ submitting ? 'Envoi…' : 'Envoyer mes réponses 🎉' }}</button>
         <button
           class="w-full py-3 text-white/40 text-sm mt-2"
           @click="submit"
-        >
-          Passer cette étape
-        </button>
+        >Passer cette étape</button>
       </div>
 
       <!-- Phase : Terminé -->
@@ -380,15 +343,11 @@ const genderOpts: { v: Gender; l: string }[] = [
         <button
           class="w-full py-4 rounded-2xl bg-white text-gray-900 font-bold text-base mb-3"
           @click="router.push(`/sondages/${survey.id}`)"
-        >
-          Voir les résultats 📊
-        </button>
+        >Voir les résultats 📊</button>
         <button
           class="w-full py-3 text-white/50 text-sm"
           @click="router.push('/')"
-        >
-          Retour à la carte
-        </button>
+        >Retour à la carte</button>
       </div>
     </div>
   </div>
@@ -405,19 +364,4 @@ const genderOpts: { v: Gender; l: string }[] = [
 .slide-left-leave-to    { transform: translateX(-60px); opacity: 0; }
 .slide-right-enter-from { transform: translateX(-60px); opacity: 0; }
 .slide-right-leave-to   { transform: translateX(60px);  opacity: 0; }
-
-input[type=range]::-webkit-slider-runnable-track {
-  background: rgba(255,255,255,0.2);
-  border-radius: 9999px;
-  height: 8px;
-}
-input[type=range]::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  background: white;
-  margin-top: -8px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-}
 </style>

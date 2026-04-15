@@ -9,6 +9,7 @@ import { useCommunesStore } from '@/stores/communes'
 import geojsonData from '@/data/communes-971.json'
 import GlobalStatsBar from './GlobalStatsBar.vue'
 import OnboardingTooltip from './OnboardingTooltip.vue'
+import LegendPanel from './LegendPanel.vue'
 
 const communesStore = useCommunesStore()
 
@@ -276,25 +277,8 @@ defineExpose({ resetSelection })
       </svg>
     </div>
 
-    <!-- Légende -->
-    <div class="absolute top-10 right-4 bg-white/90 backdrop-blur-sm rounded-xl p-3 z-[1000] text-gray-800 text-xs space-y-1.5 pointer-events-none shadow-md">
-      <p class="font-semibold text-gray-500 text-[10px] uppercase tracking-wider mb-2">Participation</p>
-      <div class="flex items-center gap-2">
-        <div class="w-3 h-3 rounded-full bg-green-500 shrink-0" />
-        <span class="text-gray-700">Forte (100+ répondants)</span>
-      </div>
-      <div class="flex items-center gap-2">
-        <div class="w-3 h-3 rounded-full bg-amber-500 shrink-0" />
-        <span class="text-gray-700">Modérée (1–99)</span>
-      </div>
-      <div class="flex items-center gap-2">
-        <div class="w-3 h-3 rounded-full bg-gray-400 shrink-0" />
-        <span class="text-gray-700">Aucun répondant</span>
-      </div>
-      <div class="border-t border-gray-200 my-1.5" />
-      <p class="text-gray-400 text-[10px]">• taille = nb répondants</p>
-      <p class="text-gray-500 text-[10px]">Cliquez sur votre commune</p>
-    </div>
+    <!-- Légende repliable -->
+    <LegendPanel />
 
     <OnboardingTooltip />
   </div>
