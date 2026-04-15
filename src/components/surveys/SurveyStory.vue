@@ -87,7 +87,8 @@ onMounted(() => {
 })
 
 // ── Navigation ────────────────────────────────────────────────────────────────
-const questions = computed(() => props.survey.questions)
+const questions = computed(() => props.survey.questions ?? [])
+const hasQuestions = computed(() => questions.value.length > 0)
 const current = computed<SurveyQuestion | null>(
   () => questions.value[currentIndex.value] ?? null,
 )
@@ -212,6 +213,19 @@ function toggleEmployment(v: EmploymentStatus) {
 
 <template>
   <div class="fixed inset-0 z-50 bg-gray-950 flex flex-col">
+
+    <!-- ── Garde : aucune question ── -->
+    <div v-if="!hasQuestions" class="flex-1 flex flex-col items-center justify-center px-6 text-center">
+      <div class="text-5xl mb-4">⚠️</div>
+      <h2 class="text-white text-2xl font-bold mb-2">Sondage indisponible</h2>
+      <p class="text-white/50 text-sm mb-6">Ce sondage ne contient pas encore de questions.</p>
+      <button
+        class="px-6 py-3 rounded-2xl bg-white/10 text-white font-semibold hover:bg-white/20 transition"
+        @click="router.back()"
+      >← Retour</button>
+    </div>
+
+    <template v-else>
     <!-- ── Barre de progression ── -->
     <div class="flex gap-1 px-4 pt-safe pt-4 pb-0 shrink-0">
       <div
@@ -501,6 +515,7 @@ function toggleEmployment(v: EmploymentStatus) {
         >Retour à la carte</button>
       </div>
     </div>
+    </template>
   </div>
 </template>
 

@@ -1,8 +1,13 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 
 const route = useRoute()
+const router = useRouter()
+
+function openResults(id: string) {
+  router.push(`/sondages/${id}`)
+}
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
 const tokenFromUrl = ref((route.query.token as string) ?? '')
@@ -201,10 +206,6 @@ function timeLeft(endsAt: string | null): string {
 
 function progressPct(n: number) {
   return Math.min(100, Math.round((n / 500) * 100))
-}
-
-function openResults(id: string) {
-  window.open(`/sondages/${id}`, '_blank')
 }
 
 // ── Montage ───────────────────────────────────────────────────────────────────

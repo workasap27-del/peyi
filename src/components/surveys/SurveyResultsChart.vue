@@ -161,18 +161,18 @@ const COLORS = [
       <div v-else-if="question.type === 'scale'" class="space-y-3">
         <div class="flex items-end gap-3">
           <span class="text-4xl font-bold text-emerald-700">{{ avgScale(question.id).toFixed(1) }}</span>
-          <span class="text-gray-400 text-sm pb-1">/ 10</span>
+          <span class="text-gray-400 text-sm pb-1">/ {{ question.max ?? 10 }}</span>
         </div>
         <div class="h-3 bg-gray-100 rounded-full overflow-hidden">
           <div
             class="h-full bg-gradient-to-r from-emerald-400 to-emerald-600 rounded-full transition-all duration-700"
-            :style="{ width: (avgScale(question.id) * 10) + '%' }"
+            :style="{ width: (avgScale(question.id) / (question.max ?? 10) * 100) + '%' }"
           />
         </div>
-        <!-- Distribution 1→10 -->
+        <!-- Distribution min→max -->
         <div class="flex items-end gap-1 h-16 mt-2">
           <div
-            v-for="val in 10"
+            v-for="val in Array.from({ length: (question.max ?? 10) - (question.min ?? 1) + 1 }, (_, i) => (question.min ?? 1) + i)"
             :key="val"
             class="flex-1 bg-emerald-100 rounded-t relative group"
             :style="{
@@ -187,8 +187,8 @@ const COLORS = [
           </div>
         </div>
         <div class="flex justify-between text-xs text-gray-400">
-          <span>1 — Très insatisfait</span>
-          <span>10 — Très satisfait</span>
+          <span>{{ question.min ?? 1 }} — Très insatisfait</span>
+          <span>{{ question.max ?? 10 }} — Très satisfait</span>
         </div>
       </div>
 

@@ -10,12 +10,18 @@ const store = useSurveysStore()
 const survey = ref<Survey | null>(null)
 const loading = ref(true)
 const resultsRef = ref<HTMLElement | null>(null)
+const toastMsg = ref<string | null>(null)
 
 // ── Chargement ────────────────────────────────────────────────────────────────
 onMounted(async () => {
   if (!store.surveys.length) await store.loadSurveys()
   survey.value = store.getSurveyById(props.id) ?? null
-  if (survey.value) await store.loadResponses(props.id)
+  if (survey.value) {
+    await store.loadResponses(props.id)
+  } else {
+    toastMsg.value = 'Sondage introuvable ou supprimé.'
+    setTimeout(() => router.replace('/sondages'), 2500)
+  }
   loading.value = false
 })
 
@@ -187,7 +193,14 @@ function goParticipate() {
   </div>
 
   <div v-else-if="!survey" class="flex items-center justify-center min-h-screen pb-24 bg-gray-50">
-    <p class="text-gray-400">Sondage introuvable.</p>
+    <div class="text-center px-6">
+      <div class="text-4xl mb-4">🔍</div>
+      <p class="text-gray-700 font-semibold mb-1">Sondage introuvable</p>
+      <p class="text-gray-400 text-sm mb-4">Redirection vers les sondages…</p>
+      <div v-if="toastMsg" class="bg-amber-50 border border-amber-200 text-amber-800 text-sm px-4 py-2 rounded-xl">
+        {{ toastMsg }}
+      </div>
+    </div>
   </div>
 
   <div v-else class="min-h-screen bg-gray-50">

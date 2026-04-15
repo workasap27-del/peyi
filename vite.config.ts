@@ -5,6 +5,16 @@ import { VitePWA } from 'vite-plugin-pwa'
 import { fileURLToPath, URL } from 'node:url'
 
 export default defineConfig({
+  test: {
+    environment: 'happy-dom',
+    globals: true,
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'html'],
+      include: ['src/**/*.{ts,vue}'],
+      exclude: ['src/main.ts', 'src/**/*.d.ts', 'src/types/**'],
+    },
+  },
   plugins: [
     vue(),
     tailwindcss(),

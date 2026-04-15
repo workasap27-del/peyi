@@ -14,7 +14,7 @@ onMounted(() => {
   <div
     class="absolute bottom-20 right-4 z-[1001] pointer-events-auto"
     style="background: rgba(255,255,255,0.92); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);"
-    :class="expanded ? 'rounded-lg shadow-md p-3 min-w-[165px]' : 'rounded-full shadow-md w-9 h-9 flex items-center justify-center'"
+    :class="expanded ? 'rounded-lg shadow-md p-2.5 w-[162px]' : 'rounded-full shadow-md w-9 h-9 flex items-center justify-center'"
   >
     <button
       v-if="!expanded"

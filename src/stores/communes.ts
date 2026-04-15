@@ -60,13 +60,13 @@ export const useCommunesStore = defineStore('communes', () => {
     }
 
     const stats: CommuneStat[] = Object.entries(COMMUNE_DATA).map(([code, d]) => {
-      // Uniquement les données réelles Supabase — aucune donnée fictive
       const participantCount = countByCode[code] ?? 0
+      const activeSurveyCount = activeSurveyCounts.value[code] ?? 0
       return {
         code,
         displayName: d.displayName,
         participantCount,
-        activeSurveyCount: 0,
+        activeSurveyCount,
       }
     })
 
