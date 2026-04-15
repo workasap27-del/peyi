@@ -210,7 +210,8 @@ onMounted(async () => {
 
   if (!mapEl.value) return
 
-  communesStore.loadParticipation()
+  // Attend les données avant le premier render pour éviter tooltip à 0
+  await communesStore.loadParticipation()
 
   map = L.map(mapEl.value, {
     center: [16.3, -61.4],

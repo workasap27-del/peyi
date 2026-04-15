@@ -21,28 +21,46 @@ export async function fetchParticipationByCommune(): Promise<Record<string, numb
 
 /**
  * Retourne le nombre de sondages actifs par code INSEE.
- * Jointure surveys → communes pour obtenir code_insee directement.
+ * Deux requêtes séparées pour éviter la dépendance à la FK déclarée en schéma.
  */
 export async function fetchActiveSurveysCountByCommune(): Promise<Record<string, number>> {
-  const { data, error } = await supabase
+  // 1. Récupère tous les sondages actifs ayant un commune_id
+  const { data: surveys, error: surveyError } = await supabase
     .from('surveys')
-    .select('commune:communes(code_insee)')
+    .select('commune_id')
     .eq('is_active', true)
     .not('commune_id', 'is', null)
 
-  if (error) {
-    console.error('[communesService] fetchActiveSurveysCountByCommune error:', error)
-    throw error
+  if (surveyError) {
+    console.error('[communesService] fetchActiveSurveysCountByCommune surveys error:', surveyError)
+    throw surveyError
   }
 
-  console.log('[communesService] active communal surveys raw:', data)
+  if (!surveys?.length) return {}
+
+  // 2. Récupère les code_insee des communes concernées
+  const uniqueIds = [...new Set(surveys.map(s => s.commune_id as string))]
+  const { data: communes, error: communeError } = await supabase
+    .from('communes')
+    .select('id, code_insee')
+    .in('id', uniqueIds)
+
+  if (communeError) {
+    console.error('[communesService] fetchActiveSurveysCountByCommune communes error:', communeError)
+    throw communeError
+  }
+
+  // 3. UUID → code_insee puis comptage
+  const idToCode: Record<string, string> = {}
+  for (const c of communes ?? []) {
+    if (c.id && c.code_insee) idToCode[c.id] = c.code_insee
+  }
 
   const counts: Record<string, number> = {}
-  for (const row of data ?? []) {
-    const code = (row.commune as { code_insee?: string } | null)?.code_insee
+  for (const s of surveys) {
+    const code = idToCode[s.commune_id as string]
     if (code) counts[code] = (counts[code] ?? 0) + 1
   }
 
-  console.log('[communesService] active surveys by code INSEE:', counts)
   return counts
 }
