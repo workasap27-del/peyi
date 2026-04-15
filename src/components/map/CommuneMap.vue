@@ -21,6 +21,7 @@ const mapEl = ref<HTMLDivElement | null>(null)
 let map: LMap | null = null
 let geoLayer: GeoJSON | null = null
 let activeLayer: Layer | null = null
+let labelMarkers: any[] = []
 
 /** Centroïde simple : moyenne des coordonnées du plus grand anneau */
 function centroid(geometry: GeoJSON.Geometry): [number, number] {
@@ -29,7 +30,6 @@ function centroid(geometry: GeoJSON.Geometry): [number, number] {
   if (geometry.type === 'Polygon') {
     coords = geometry.coordinates[0] as number[][]
   } else if (geometry.type === 'MultiPolygon') {
-    // Prendre le plus grand anneau extérieur
     let best: number[][] = []
     for (const poly of (geometry.coordinates as number[][][][])) {
       if (poly[0].length > best.length) best = poly[0] as number[][]
@@ -50,19 +50,23 @@ function getStatForFeature(feature: GeoJSON.Feature): CommuneStat | null {
 function renderGeoLayer(L: LeafletInstance) {
   if (!map) return
 
-  // Remove existing layer
+  // Remove existing layers
   geoLayer?.remove()
   activeLayer = null
+
+  // Remove old label markers
+  labelMarkers.forEach(m => m.remove())
+  labelMarkers = []
 
   const mx = communesStore.maxCount > 0
     ? communesStore.maxCount
     : Math.max(...Object.values(communesStore.statsByCode).map(s => s.participantCount), 0)
 
-  // Légère teinte verte sur les terres guadeloupéennes
+  // Légère teinte verte forêt sur les terres guadeloupéennes
   L.geoJSON(geojsonData as GeoJSON.FeatureCollection, {
     style: () => ({
-      fillColor: '#2d5a27',
-      fillOpacity: 0.06,
+      fillColor: '#1a4a2e',
+      fillOpacity: 0.12,
       color: 'transparent',
       weight: 0,
     }),
@@ -74,11 +78,10 @@ function renderGeoLayer(L: LeafletInstance) {
       const stat = getStatForFeature(feature!)
       const count = stat?.participantCount ?? 0
       const color = participationColor(count, mx)
-      const opacity = count >= 1 ? 0.45 : 0.10
       return {
         fillColor: color,
-        fillOpacity: opacity,
-        color: 'rgba(255,255,255,0.8)',
+        fillOpacity: count >= 1 ? 0.30 : 0.10,
+        color: 'rgba(255,255,255,0.9)',
         weight: 1.5,
         opacity: 1,
       }
@@ -111,9 +114,9 @@ function renderGeoLayer(L: LeafletInstance) {
 
       layer.on('mouseover', () => {
         ;(layer as any).setStyle({
-          fillOpacity: 0.7,
+          fillOpacity: 0.55,
           weight: 2.5,
-          color: 'rgba(0,0,0,0.6)',
+          color: '#ffffff',
         })
         ;(layer as any).bringToFront()
       })
@@ -131,7 +134,7 @@ function renderGeoLayer(L: LeafletInstance) {
     },
   }).addTo(map)
 
-  // Proportional circles + labels
+  // Proportional circles + commune labels
   for (const feature of (geojsonData as GeoJSON.FeatureCollection).features) {
     const stat = getStatForFeature(feature)
     if (!stat) continue
@@ -149,6 +152,17 @@ function renderGeoLayer(L: LeafletInstance) {
       weight: count > 0 ? 1 : 0.5,
       interactive: false,
     }).addTo(map)
+
+    // Nom de commune (affiché selon zoom via CSS)
+    const labelIcon = L.divIcon({
+      className: 'commune-label',
+      html: `<span class="commune-label-text">${stat.displayName}</span>`,
+      iconSize: [0, 0],
+      iconAnchor: [0, 0],
+    })
+    const lm = L.marker([lat, lng], { icon: labelIcon, interactive: false, zIndexOffset: -200 })
+    lm.addTo(map!)
+    labelMarkers.push(lm)
   }
 }
 
@@ -173,6 +187,21 @@ function showPulse(L: LeafletInstance, code: string) {
   setTimeout(() => { pulseMarker?.remove(); pulseMarker = null }, 3000)
 }
 
+/** Met à jour les classes zoom pour la visibilité et la taille des labels */
+function updateLabelVisibility() {
+  if (!map) return
+  const container = map.getContainer()
+  const zoom = map.getZoom()
+  container.classList.remove('labels-hidden', 'labels-sm', 'labels-lg')
+  if (zoom < 9) {
+    container.classList.add('labels-hidden')
+  } else if (zoom <= 10) {
+    container.classList.add('labels-sm')
+  } else {
+    container.classList.add('labels-lg')
+  }
+}
+
 onMounted(async () => {
   const L = (await import('leaflet')).default
   leafletInstance = L
@@ -180,7 +209,6 @@ onMounted(async () => {
 
   if (!mapEl.value) return
 
-  // Start fetching real participation counts (non-blocking)
   communesStore.loadParticipation()
 
   map = L.map(mapEl.value, {
@@ -192,21 +220,11 @@ onMounted(async () => {
     maxZoom: 14,
   })
 
-  // Labels visibles seulement si zoom >= 10
-  function updateLabelVisibility() {
-    if (!map) return
-    const container = map.getContainer()
-    if (map.getZoom() >= 10) {
-      container.classList.remove('labels-hidden')
-    } else {
-      container.classList.add('labels-hidden')
-    }
-  }
   map.on('zoomend', updateLabelVisibility)
   updateLabelVisibility()
 
-  // Tuiles CartoDB Voyager — fond coloré naturel avec relief, routes, végétation
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+  // CartoDB Voyager No Labels — supprime les labels natifs pour nos labels custom
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png', {
     subdomains: 'abcd',
     maxZoom: 14,
     minZoom: 6,
@@ -214,7 +232,6 @@ onMounted(async () => {
 
   L.control.zoom({ position: 'bottomright' }).addTo(map)
 
-  // Initial render with static data, then re-render when Supabase counts arrive
   renderGeoLayer(L)
 
   watch(
@@ -224,7 +241,6 @@ onMounted(async () => {
     },
   )
 
-  // Pulse animation quand pulseCode change après soumission
   watch(
     () => communesStore.pulseCode,
     (code) => {
@@ -254,7 +270,7 @@ defineExpose({ resetSelection })
 
     <div ref="mapEl" class="w-full h-full" />
 
-    <!-- Éléments décoratifs SVG Caraïbes (positionnés dans la mer) -->
+    <!-- Éléments décoratifs SVG Caraïbes -->
     <!-- Dauphin — nord -->
     <div class="sea-deco" style="top: 6%; left: 15%;" title="Dauphin">
       <svg viewBox="0 0 64 64" class="w-8 h-8 opacity-60">
@@ -304,7 +320,7 @@ defineExpose({ resetSelection })
 
     <OnboardingTooltip />
 
-    <!-- Vignette : met en exergue la Guadeloupe, assombrit les bords -->
+    <!-- Vignette -->
     <div
       class="absolute inset-0 pointer-events-none z-[500]"
       style="background: radial-gradient(ellipse 55% 65% at 52% 52%, transparent 60%, rgba(180,210,220,0.45) 100%);"
@@ -325,7 +341,7 @@ defineExpose({ resetSelection })
 
 /* Fond mer naturel */
 .caribbean-map .leaflet-container {
-  background: #a8d5e8 !important; /* bleu mer doux, visible entre les tuiles */
+  background: #a8d5e8 !important;
 }
 
 /* Pulse vert après soumission */
@@ -342,8 +358,39 @@ defineExpose({ resetSelection })
   100% { transform: scale(2.2); opacity: 0; }
 }
 
-/* Labels communes — masqués si zoom < 10 */
+/* Labels communes — masqués si zoom < 9, tailles dynamiques */
 .labels-hidden .commune-label { display: none !important; }
+
+.commune-label {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.commune-label-text {
+  display: block;
+  transform: translate(-50%, -50%);
+  white-space: nowrap;
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  color: #1a2e1a;
+  pointer-events: none;
+  text-shadow: 0 1px 3px rgba(255,255,255,0.9), 0 0 6px rgba(255,255,255,0.8);
+  font-size: 10px;
+  letter-spacing: 0.01em;
+}
+
+/* Zoom 9-10 : 10px */
+.labels-sm .commune-label-text {
+  font-size: 10px;
+  opacity: 0.85;
+}
+
+/* Zoom > 10 : 13px */
+.labels-lg .commune-label-text {
+  font-size: 13px;
+  opacity: 1;
+}
 
 /* Éléments décoratifs SVG */
 .sea-deco {

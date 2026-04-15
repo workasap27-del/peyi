@@ -48,7 +48,6 @@ let clockTimer: ReturnType<typeof setInterval> | null = null
 
 function updateClock() {
   const now = new Date()
-  // UTC-4
   const utcMs = now.getTime() + now.getTimezoneOffset() * 60000
   const gwDate = new Date(utcMs - 4 * 3600000)
   clockH.value = String(gwDate.getHours()).padStart(2, '0')
@@ -57,8 +56,10 @@ function updateClock() {
   colonVisible.value = !colonVisible.value
 }
 
-// ── Stats Supabase ────────────────────────────────────────────────────────────
-onMounted(async () => {
+// ── Stats Supabase — rechargement toutes les 60s ──────────────────────────────
+let statsTimer: ReturnType<typeof setInterval> | null = null
+
+async function fetchStats() {
   try {
     const [{ count: sCount }, { data: rData }] = await Promise.all([
       supabase.from('surveys').select('*', { count: 'exact', head: true }).eq('is_active', true),
@@ -69,6 +70,11 @@ onMounted(async () => {
     uniqueCitizens.value = unique.size
   } catch { /* silencieux */ }
   finally { loaded.value = true }
+}
+
+onMounted(async () => {
+  await fetchStats()
+  statsTimer = setInterval(fetchStats, 60 * 1000)
 
   // Météo initiale + rafraîchissement toutes les 10 min
   fetchWeather()
@@ -80,6 +86,7 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
+  if (statsTimer) clearInterval(statsTimer)
   if (weatherTimer) clearInterval(weatherTimer)
   if (clockTimer) clearInterval(clockTimer)
 })
@@ -111,7 +118,7 @@ function fmt(n: number): string {
             <span class="text-sm leading-none">📝</span>
             <span class="text-gray-900 font-bold text-base leading-none">{{ fmt(activeSurveysCount) }}</span>
           </div>
-          <p class="text-gray-400 text-[9px] uppercase tracking-wider">sondages</p>
+          <p class="text-gray-400 text-[9px] uppercase tracking-wider">sondages actifs</p>
         </div>
         <div class="hidden sm:block w-px self-stretch bg-gray-200" />
         <div class="hidden sm:block text-center relative">
@@ -123,7 +130,7 @@ function fmt(n: number): string {
               <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
             </span>
           </div>
-          <p class="text-gray-400 text-[9px] uppercase tracking-wider">citoyens</p>
+          <p class="text-gray-400 text-[9px] uppercase tracking-wider">citoyens actifs</p>
         </div>
       </template>
 
