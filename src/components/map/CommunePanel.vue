@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import type { CommuneStat } from '@/data/communeStats'
 import { participationColor } from '@/data/communeStats'
 import { useSurveysStore } from '@/stores/surveys'
+import { useCommunesStore } from '@/stores/communes'
 import type { Survey } from '@/types'
 import { supabase } from '@/services/supabase'
 
@@ -11,6 +12,7 @@ const props = defineProps<{ commune: CommuneStat | null }>()
 const emit = defineEmits<{ close: [] }>()
 const router = useRouter()
 const store = useSurveysStore()
+const communesStore = useCommunesStore()
 
 const communeDbId = ref<string | null>(null)
 
@@ -37,7 +39,7 @@ const participationRate = computed(() => {
   return Math.min(100, Math.round((props.commune.participantCount / 50000) * 100 * 10) / 10)
 })
 
-const color = computed(() => props.commune ? participationColor(props.commune.participantCount) : '#6b7280')
+const color = computed(() => props.commune ? participationColor(props.commune.participantCount, communesStore.maxCount) : '#6b7280')
 
 /** Temps estimé : nb questions × 12s, arrondi à la minute supérieure */
 function estimatedTime(questions: any[]): string {

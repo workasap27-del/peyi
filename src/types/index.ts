@@ -102,11 +102,14 @@ export interface Survey {
 
 export type AgeGroup = '15-24' | '25-34' | '35-49' | '50-64' | '65+'
 export type Gender = 'homme' | 'femme' | 'autre' | 'préfère_ne_pas_répondre'
+export type EmploymentStatus = 'actif' | 'etudiant' | 'retraite' | 'sans_emploi'
 
 export interface SurveyDemographics {
   age_group?: AgeGroup
   commune?: string
   gender?: Gender
+  employment_status?: EmploymentStatus
+  sector?: string
 }
 
 export interface SurveyResponse {

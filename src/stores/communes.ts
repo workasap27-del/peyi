@@ -12,6 +12,8 @@ export const useCommunesStore = defineStore('communes', () => {
   const loading = ref(false)
   /** Code INSEE de la commune à animer (pulse vert) après soumission */
   const pulseCode = ref<string | null>(null)
+  /** Maximum participation count across all communes (for relative coloring) */
+  const maxCount = ref(0)
 
   async function loadParticipation() {
     if (loading.value) return
@@ -24,6 +26,9 @@ export const useCommunesStore = defineStore('communes', () => {
       ])
       remoteCounts.value = participation
       activeSurveyCounts.value = activeSurveys
+      // Compute maxCount for relative participation thresholds
+      const counts = Object.values(participation)
+      maxCount.value = counts.length > 0 ? Math.max(...counts) : 0
     } catch {
       // Silently fall back to zero remote counts
     } finally {
@@ -72,5 +77,5 @@ export const useCommunesStore = defineStore('communes', () => {
     Object.fromEntries(communeStats.value.map(s => [s.code, s]))
   )
 
-  return { loaded, loading, pulseCode, communeStats, statsByCode, loadParticipation, triggerRefresh, participationColor, circleRadius }
+  return { loaded, loading, pulseCode, maxCount, communeStats, statsByCode, loadParticipation, triggerRefresh, participationColor, circleRadius }
 })

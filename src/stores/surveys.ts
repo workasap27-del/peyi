@@ -91,11 +91,23 @@ export const useSurveysStore = defineStore('surveys', () => {
   }
 
   async function submitResponse(payload: SurveyResponseInsert): Promise<void> {
+    // Merge saved citizen profile from localStorage into demographics
+    let mergedDemographics = { ...payload.demographics }
+    try {
+      const saved = localStorage.getItem('peyi_citizen_profile')
+      if (saved) {
+        const profile = JSON.parse(saved)
+        // Saved profile fills missing fields; explicit payload values take priority
+        mergedDemographics = { ...profile, ...mergedDemographics }
+      }
+    } catch { /* ignore */ }
+
     // Use auth.uid() as respondent_id when authenticated, else anonymous fingerprint
     const { data: { user } } = await supabase.auth.getUser()
     const resolvedPayload: SurveyResponseInsert = {
       ...payload,
       respondent_id: user?.id ?? payload.respondent_id,
+      demographics: mergedDemographics,
     }
     try {
       const { error: err } = await supabase.from('survey_responses').insert(resolvedPayload)

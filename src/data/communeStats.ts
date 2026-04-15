@@ -55,18 +55,28 @@ export const NOM_TO_CODE: Record<string, string> = {
 }
 
 /**
- * Couleur du rond selon les répondants RÉELS.
- * Gris si zéro répondant, orange entre 1-99, vert si 100+.
+ * Couleur relative selon le nb de répondants et le maximum connu.
+ * Gris si aucun répondant, vert si count >= 30% du max, orange sinon.
  */
-export function participationColor(count: number): string {
-  if (count >= 100) return '#22c55e'
-  if (count >= 1)   return '#f59e0b'
-  return '#6b7280'
+export function participationColor(count: number, maxCount: number): string {
+  if (maxCount === 0 || count === 0) return '#6b7280'
+  if (count >= maxCount * 0.3) return '#22c55e'
+  return '#f59e0b'
 }
 
-/** Alias conservé pour compatibilité */
-export function heatColor(count: number): string {
-  return participationColor(count)
+/**
+ * Label lisible pour la légende.
+ */
+export function getParticipationLabel(count: number, maxCount: number): string {
+  const color = participationColor(count, maxCount)
+  if (color === '#22c55e') return 'Forte participation'
+  if (color === '#f59e0b') return 'Modérée'
+  return 'Aucune'
+}
+
+/** Alias conservé pour compatibilité descendante */
+export function heatColor(count: number, maxCount = 0): string {
+  return participationColor(count, maxCount)
 }
 
 /**

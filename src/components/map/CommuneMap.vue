@@ -54,23 +54,32 @@ function renderGeoLayer(L: LeafletInstance) {
   geoLayer?.remove()
   activeLayer = null
 
-  const maxCount = Math.max(
-    ...Object.values(communesStore.statsByCode).map(s => s.participantCount),
-    1,
-  )
+  const mx = communesStore.maxCount > 0
+    ? communesStore.maxCount
+    : Math.max(...Object.values(communesStore.statsByCode).map(s => s.participantCount), 0)
+
+  // Légère teinte verte sur les terres guadeloupéennes
+  L.geoJSON(geojsonData as GeoJSON.FeatureCollection, {
+    style: () => ({
+      fillColor: '#2d5a27',
+      fillOpacity: 0.06,
+      color: 'transparent',
+      weight: 0,
+    }),
+    interactive: false,
+  }).addTo(map)
 
   geoLayer = L.geoJSON(geojsonData as GeoJSON.FeatureCollection, {
     style: (feature) => {
       const stat = getStatForFeature(feature!)
       const count = stat?.participantCount ?? 0
-      const color = participationColor(count)
-      // Opacité de remplissage : faible si zéro répondant
-      const opacity = count >= 1 ? 0.38 : 0.08
+      const color = participationColor(count, mx)
+      const opacity = count >= 1 ? 0.45 : 0.10
       return {
         fillColor: color,
         fillOpacity: opacity,
-        color: 'rgba(0,0,0,0.25)',
-        weight: 1,
+        color: 'rgba(255,255,255,0.8)',
+        weight: 1.5,
         opacity: 1,
       }
     },
@@ -78,7 +87,7 @@ function renderGeoLayer(L: LeafletInstance) {
       const stat = getStatForFeature(feature)
       if (!stat) return
 
-      const color = participationColor(stat.participantCount)
+      const color = participationColor(stat.participantCount, mx)
 
       layer.bindTooltip(`
         <div style="font-family:Inter,sans-serif;min-width:150px;">
@@ -129,8 +138,8 @@ function renderGeoLayer(L: LeafletInstance) {
 
     const [lat, lng] = centroid(feature.geometry)
     const count = stat.participantCount
-    const color = participationColor(count)
-    const r = circleRadius(count, maxCount)
+    const color = participationColor(count, mx)
+    const r = circleRadius(count, mx)
 
     L.circleMarker([lat, lng], {
       radius: r,
@@ -175,7 +184,7 @@ onMounted(async () => {
   communesStore.loadParticipation()
 
   map = L.map(mapEl.value, {
-    center: [16.17, -61.6],
+    center: [16.25, -61.55],
     zoom: 10,
     zoomControl: false,
     attributionControl: false,
