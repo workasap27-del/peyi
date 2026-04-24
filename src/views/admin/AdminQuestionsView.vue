@@ -44,6 +44,7 @@ async function authenticate(tok: string) {
     if (res.ok) {
       tokenFromUrl.value = tok
       isAuthenticated.value = true
+      localStorage.setItem('peyi_admin_token', tok)
     } else {
       authError.value = 'Token invalide'
     }
@@ -54,23 +55,9 @@ async function authenticate(tok: string) {
   }
 }
 
-// ── Communes ──────────────────────────────────────────────────────────────────
-const COMMUNES = [
-  'Basse-Terre', 'Baillif', 'Bouillante', 'Capesterre-Belle-Eau', 'Gourbeyre',
-  'Pointe-Noire', 'Saint-Claude', 'Trois-Rivières', 'Vieux-Fort', 'Vieux-Habitants',
-  'Pointe-à-Pitre', 'Les Abymes', 'Baie-Mahault', 'Le Gosier', "Morne-à-l'Eau",
-  'Petit-Bourg', 'Sainte-Anne', 'Sainte-Rose', 'Saint-François',
-  'Anse-Bertrand', 'La Désirade', 'Le Lamentin', 'Le Moule', 'Port-Louis',
-  'Saint-Louis (Marie-Galante)', 'Capesterre-de-Marie-Galante', 'Grand-Bourg',
-  'Saint-Barthélemy', 'Saint-Martin',
-  'Terre-de-Bas', 'Terre-de-Haut', 'Vieux-Fort (Les Saintes)'
-]
-
 // ── Formulaire ────────────────────────────────────────────────────────────────
 const title = ref('')
-const scope = ref<'global' | 'commune' | 'quarterly'>('global')
-const communeSearch = ref('')
-const selectedCommune = ref('')
+const scope = ref<'global' | 'quarterly'>('global')
 const answerType = ref<'yesno' | 'scale5' | 'multiple' | 'scale10'>('yesno')
 const customOptions = ref<string[]>(['', ''])
 const duration = ref<'48h' | '7d' | '30d' | 'custom'>('48h')
@@ -78,10 +65,6 @@ const customDate = ref('')
 const context = ref('')
 const publishing = ref(false)
 const toast = ref<{ msg: string; type: 'success' | 'error' } | null>(null)
-
-const filteredCommunes = computed(() =>
-  COMMUNES.filter(c => c.toLowerCase().includes(communeSearch.value.toLowerCase()))
-)
 
 function addOption() {
   if (customOptions.value.length < 6) customOptions.value.push('')
@@ -140,7 +123,6 @@ async function publish() {
       body: JSON.stringify({
         title: title.value.trim(),
         description,
-        commune_name: scope.value === 'commune' ? selectedCommune.value || null : null,
         questions: buildQuestions(),
         is_active: true,
         ends_at: endsAt.value?.toISOString() ?? null,
@@ -150,8 +132,6 @@ async function publish() {
     showToast('Sondage publié ✓', 'success')
     title.value = ''
     context.value = ''
-    communeSearch.value = ''
-    selectedCommune.value = ''
     customOptions.value = ['', '']
     await loadSurveys()
   } catch (e: any) {
@@ -208,6 +188,71 @@ function progressPct(n: number) {
   return Math.min(100, Math.round((n / 500) * 100))
 }
 
+// ── Communes ref ─────────────────────────────────────────────────────────────
+const communes = ref<{id: string, name: string}[]>([])
+
+// ── Demographics ──────────────────────────────────────────────────────────────
+interface DemoRow {
+  demographics: {
+    age_group?: string
+    gender?: string
+    commune?: string
+    employment_status?: string
+    quartier?: string
+  } | null
+  respondent_id: string
+  survey_id: string
+}
+
+const demoData = ref<DemoRow[]>([])
+const demoLoading = ref(false)
+
+async function loadDemographics() {
+  demoLoading.value = true
+  try {
+    const data = await adminFetch('/api/admin/get-demographics')
+    demoData.value = data ?? []
+  } catch { /* ignore */ }
+  finally { demoLoading.value = false }
+}
+
+const totalRespondents = computed(() => {
+  const ids = new Set(demoData.value.map(r => r.respondent_id))
+  return ids.size
+})
+
+function demoCount(key: 'age_group' | 'gender' | 'commune', val: string): number {
+  return demoData.value.filter(r => r.demographics?.[key] === val).length
+}
+
+function demoPercent(key: 'age_group' | 'gender' | 'commune', val: string): number {
+  if (!demoData.value.length) return 0
+  return Math.round((demoCount(key, val) / demoData.value.length) * 100)
+}
+
+const ageGroups = ['18-24', '25-34', '35-44', '45-54', '55-64', '65+']
+const genders = [
+  { val: 'homme', label: 'Homme' },
+  { val: 'femme', label: 'Femme' },
+  { val: 'autre', label: 'Autre / NR' },
+]
+
+const topCommunes = computed(() => {
+  const counts: Record<string, number> = {}
+  for (const r of demoData.value) {
+    const c = r.demographics?.commune
+    if (c) counts[c] = (counts[c] ?? 0) + 1
+  }
+  return Object.entries(counts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 6)
+    .map(([name, n]) => ({
+      name,
+      n,
+      pct: Math.round((n / demoData.value.length) * 100),
+    }))
+})
+
 // ── Montage ───────────────────────────────────────────────────────────────────
 onMounted(async () => {
   if (tokenFromUrl.value) {
@@ -216,7 +261,14 @@ onMounted(async () => {
 })
 
 watch(isAuthenticated, async (v) => {
-  if (v) await loadSurveys()
+  if (v) {
+    await loadSurveys()
+    await loadDemographics()
+    try {
+      const communesData = await adminFetch('/api/admin/list-communes')
+      communes.value = communesData
+    } catch { /* ignore */ }
+  }
 })
 </script>
 
@@ -274,6 +326,35 @@ watch(isAuthenticated, async (v) => {
       </div>
     </transition>
 
+    <!-- Stats bar -->
+    <div class="border-b border-[#1a1a1a] px-6 py-3 flex items-center gap-6 overflow-x-auto bg-[#0d0d0d]">
+      <div class="flex items-center gap-2 shrink-0">
+        <span class="text-[#10b981] text-lg font-bold">{{ totalRespondents }}</span>
+        <span class="text-gray-600 text-xs">répondants totaux</span>
+      </div>
+      <div class="w-px h-4 bg-[#1a1a1a] shrink-0" />
+      <div class="flex items-center gap-2 shrink-0">
+        <span class="text-white text-lg font-bold">{{ activeSurveys.length }}</span>
+        <span class="text-gray-600 text-xs">sondages actifs</span>
+      </div>
+      <div class="w-px h-4 bg-[#1a1a1a] shrink-0" />
+      <div class="flex items-center gap-2 shrink-0">
+        <span class="text-gray-400 text-lg font-bold">{{ closedSurveys.length }}</span>
+        <span class="text-gray-600 text-xs">clôturés</span>
+      </div>
+      <div class="w-px h-4 bg-[#1a1a1a] shrink-0" />
+      <div class="flex items-center gap-2 shrink-0">
+        <span class="text-amber-400 text-lg font-bold">{{ demoData.filter(r => r.demographics?.age_group === '18-24' || r.demographics?.age_group === '25-34').length }}</span>
+        <span class="text-gray-600 text-xs">18–34 ans</span>
+      </div>
+      <div class="ml-auto shrink-0">
+        <button
+          class="text-xs text-gray-600 hover:text-[#10b981] transition"
+          @click="loadDemographics"
+        >↻ Actualiser</button>
+      </div>
+    </div>
+
     <!-- Corps : 2 colonnes -->
     <div class="flex flex-col lg:flex-row gap-0 min-h-[calc(100vh-61px)]">
 
@@ -301,11 +382,10 @@ watch(isAuthenticated, async (v) => {
         <!-- Champ 2 : Scope -->
         <div>
           <label class="text-xs text-gray-400 mb-2 block">Portée du sondage</label>
-          <div class="grid grid-cols-3 gap-2">
+          <div class="grid grid-cols-2 gap-2">
             <button
               v-for="opt in [
                 { value: 'global', icon: '🌍', label: 'Toute la Guadeloupe' },
-                { value: 'commune', icon: '📍', label: 'Commune spécifique' },
                 { value: 'quarterly', icon: '🔁', label: 'Baromètre trimestriel' }
               ]"
               :key="opt.value"
@@ -317,30 +397,6 @@ watch(isAuthenticated, async (v) => {
             >
               <span class="text-lg">{{ opt.icon }}</span>
               <span class="text-center leading-tight">{{ opt.label }}</span>
-            </button>
-          </div>
-        </div>
-
-        <!-- Champ 3 : Commune (si scope commune) -->
-        <div v-if="scope === 'commune'">
-          <label class="text-xs text-gray-400 mb-2 block">Commune</label>
-          <input
-            v-model="communeSearch"
-            type="text"
-            placeholder="Rechercher une commune..."
-            class="w-full bg-[#111] border border-[#222] rounded-xl px-4 py-2.5 text-white text-sm placeholder-gray-600 focus:border-[#10b981] outline-none transition mb-2"
-          />
-          <div class="max-h-40 overflow-y-auto rounded-xl border border-[#222] bg-[#111]">
-            <button
-              v-for="c in filteredCommunes"
-              :key="c"
-              class="w-full text-left px-4 py-2 text-sm transition"
-              :class="selectedCommune === c
-                ? 'bg-[#10b981]/20 text-[#10b981]'
-                : 'text-gray-300 hover:bg-[#1a1a1a]'"
-              @click="selectedCommune = c; communeSearch = c"
-            >
-              {{ c }}
             </button>
           </div>
         </div>
@@ -554,6 +610,74 @@ watch(isAuthenticated, async (v) => {
               </div>
               <span class="text-xs text-gray-600 shrink-0">CLOS</span>
             </div>
+          </div>
+        </div>
+
+        <!-- ── DÉMOGRAPHIE ──────────────────────────────────────────────────── -->
+        <div>
+          <div class="flex items-center gap-2 mb-4">
+            <h2 class="text-xs font-semibold text-gray-500 uppercase tracking-widest">Démographie</h2>
+            <span v-if="demoLoading" class="text-[10px] text-gray-600 animate-pulse">Chargement…</span>
+            <span v-else class="text-[10px] text-gray-600">{{ demoData.length }} réponses analysées</span>
+          </div>
+
+          <div v-if="!demoLoading && demoData.length" class="space-y-5">
+
+            <!-- Genre -->
+            <div>
+              <p class="text-[10px] text-gray-600 uppercase tracking-wider mb-2">Genre</p>
+              <div class="space-y-1.5">
+                <div v-for="g in genders" :key="g.val" class="flex items-center gap-2">
+                  <span class="text-[11px] text-gray-400 w-20 shrink-0">{{ g.label }}</span>
+                  <div class="flex-1 h-1.5 bg-[#1a1a1a] rounded-full overflow-hidden">
+                    <div
+                      class="h-full bg-[#10b981] rounded-full transition-all duration-700"
+                      :style="{ width: demoPercent('gender', g.val) + '%' }"
+                    />
+                  </div>
+                  <span class="text-[11px] text-gray-500 w-8 text-right shrink-0">{{ demoPercent('gender', g.val) }}%</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Âge -->
+            <div>
+              <p class="text-[10px] text-gray-600 uppercase tracking-wider mb-2">Tranches d'âge</p>
+              <div class="space-y-1.5">
+                <div v-for="ag in ageGroups" :key="ag" class="flex items-center gap-2">
+                  <span class="text-[11px] text-gray-400 w-14 shrink-0">{{ ag }}</span>
+                  <div class="flex-1 h-1.5 bg-[#1a1a1a] rounded-full overflow-hidden">
+                    <div
+                      class="h-full bg-amber-400 rounded-full transition-all duration-700"
+                      :style="{ width: demoPercent('age_group', ag) + '%' }"
+                    />
+                  </div>
+                  <span class="text-[11px] text-gray-500 w-8 text-right shrink-0">{{ demoPercent('age_group', ag) }}%</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Top communes -->
+            <div v-if="topCommunes.length">
+              <p class="text-[10px] text-gray-600 uppercase tracking-wider mb-2">Top communes</p>
+              <div class="space-y-1.5">
+                <div v-for="c in topCommunes" :key="c.name" class="flex items-center gap-2">
+                  <span class="text-[11px] text-gray-400 w-28 shrink-0 truncate">{{ c.name }}</span>
+                  <div class="flex-1 h-1.5 bg-[#1a1a1a] rounded-full overflow-hidden">
+                    <div
+                      class="h-full bg-blue-500 rounded-full transition-all duration-700"
+                      :style="{ width: c.pct + '%' }"
+                    />
+                  </div>
+                  <span class="text-[11px] text-gray-500 w-8 text-right shrink-0">{{ c.pct }}%</span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <div v-else-if="!demoLoading" class="text-gray-600 text-xs text-center py-6 bg-[#111] rounded-xl border border-[#1a1a1a]">
+            Aucune donnée démographique
           </div>
         </div>
 

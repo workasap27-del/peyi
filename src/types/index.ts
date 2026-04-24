@@ -111,6 +111,7 @@ export interface SurveyDemographics {
   gender?: Gender
   employment_status?: EmploymentStatus
   sector?: string
+  quartier?: string
 }
 
 export interface SurveyResponse {

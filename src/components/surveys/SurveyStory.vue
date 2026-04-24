@@ -37,6 +37,7 @@ interface CitizenProfile {
   commune?: string
   employment_status?: EmploymentStatus
   sector?: string
+  quartier?: string
 }
 
 const profile = ref<CitizenProfile>({})
@@ -155,6 +156,7 @@ async function submit() {
     commune: profile.value.commune,
     employment_status: profile.value.employment_status,
     sector: profile.value.sector,
+    quartier: profile.value.quartier || undefined,
   }
 
   try {
@@ -486,6 +488,19 @@ function toggleEmployment(v: EmploymentStatus) {
             </div>
           </div>
         </Transition>
+
+        <!-- Quartier -->
+        <div>
+          <p class="text-gray-400 text-xs font-bold uppercase tracking-wider mb-2">QUARTIER / LIEU-DIT</p>
+          <input
+            v-model="profile.quartier"
+            type="text"
+            maxlength="50"
+            placeholder="Ex: Moudong Centre, Grand-Camp, Lauricisque..."
+            class="w-full bg-white/10 border-2 border-white/15 rounded-2xl px-4 py-3 text-white placeholder-white/30 text-[15px] focus:outline-none focus:border-emerald-500"
+          />
+          <p class="text-gray-600 text-[11px] mt-1.5">Optionnel — permet une analyse plus précise de votre zone</p>
+        </div>
 
         <!-- Confidentialité -->
         <p class="text-gray-500 text-xs text-center italic">

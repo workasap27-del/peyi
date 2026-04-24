@@ -15,26 +15,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(401).json({ error: 'Unauthorized' })
   }
 
-  const { title, description, commune_name, questions, is_active, ends_at } = req.body
+  const { title, description, questions, is_active, ends_at } = req.body
 
   if (!title?.trim()) return res.status(400).json({ error: 'Titre requis' })
 
   try {
-    let commune_id: string | null = null
-
-    if (commune_name) {
-      const { data: commune } = await sb
-        .from('communes')
-        .select('id')
-        .eq('name', commune_name)
-        .single()
-      commune_id = commune?.id ?? null
-    }
-
     const { data, error } = await sb.from('surveys').insert({
       title: title.trim(),
       description: description?.trim() || null,
-      commune_id,
+      commune_id: null,
       questions,
       is_active: is_active ?? true,
       ends_at: ends_at ?? null,

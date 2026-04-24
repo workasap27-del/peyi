@@ -1,14 +1,40 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { RouterLink, useRoute } from 'vue-router'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
 
 const route = useRoute()
+const router = useRouter()
 const menuOpen = ref(false)
 
 const tabs = [
   { name: 'Carte',      to: '/',            icon: '🗺️' },
   { name: 'Sondages',   to: '/sondages',    icon: '📊' },
 ]
+
+// ── Admin access ──────────────────────────────────────────────────────────────
+const adminToken = ref(localStorage.getItem('peyi_admin_token') || '')
+const showAdminAccess = ref(!!adminToken.value)
+const showPasswordModal = ref(false)
+const adminPasswordInput = ref('')
+
+function tryAdminAccess() {
+  const viteToken = import.meta.env.VITE_ADMIN_TOKEN
+  if (adminPasswordInput.value === viteToken) {
+    localStorage.setItem('peyi_admin_token', adminPasswordInput.value)
+    adminToken.value = adminPasswordInput.value
+    showAdminAccess.value = true
+    showPasswordModal.value = false
+    menuOpen.value = false
+    router.push(`/admin/questions?token=${adminPasswordInput.value}`)
+  } else {
+    adminPasswordInput.value = ''
+  }
+}
+
+function goToAdmin() {
+  router.push(`/admin/questions?token=${adminToken.value}`)
+  menuOpen.value = false
+}
 </script>
 
 <template>
@@ -73,7 +99,27 @@ const tabs = [
             <p class="text-xs text-gray-400">Données, vie privée, éditeur</p>
           </div>
         </RouterLink>
+
+        <!-- Admin bouton (visible si token connu) -->
+        <button
+          v-if="showAdminAccess"
+          class="flex items-center gap-3 w-full px-3 py-3 rounded-xl hover:bg-gray-50 transition text-left"
+          @click="goToAdmin"
+        >
+          <span class="text-2xl">⚙️</span>
+          <div>
+            <p class="font-medium text-sm">Administration</p>
+            <p class="text-xs text-gray-400">Gérer les sondages</p>
+          </div>
+        </button>
       </div>
+
+      <!-- Point secret pour activer l'accès admin -->
+      <button
+        v-if="!showAdminAccess"
+        class="w-full py-1 text-center text-gray-100 text-[8px] select-none mt-2"
+        @click="showPasswordModal = true"
+      >·</button>
     </div>
   </Transition>
 
@@ -84,6 +130,30 @@ const tabs = [
       class="fixed inset-0 z-[8999] bg-black/20"
       @click="menuOpen = false"
     />
+  </Transition>
+
+  <!-- Modal admin password -->
+  <Transition name="fade">
+    <div
+      v-if="showPasswordModal"
+      class="fixed inset-0 bg-black/50 z-[9999] flex items-center justify-center px-6"
+      @click.self="showPasswordModal = false"
+    >
+      <div class="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl">
+        <h3 class="font-bold text-gray-900 mb-4 text-lg">Accès administration</h3>
+        <input
+          v-model="adminPasswordInput"
+          type="password"
+          placeholder="Mot de passe"
+          class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm mb-4 focus:border-emerald-500 focus:outline-none"
+          @keyup.enter="tryAdminAccess"
+        />
+        <button
+          class="w-full bg-emerald-600 text-white rounded-xl py-3 font-medium text-sm hover:bg-emerald-500 transition"
+          @click="tryAdminAccess"
+        >Accéder</button>
+      </div>
+    </div>
   </Transition>
 </template>
 
