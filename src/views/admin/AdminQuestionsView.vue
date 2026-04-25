@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRouter } from 'vue-router'
 
-const route = useRoute()
 const router = useRouter()
 
 function openResults(id: string) {
@@ -10,7 +9,7 @@ function openResults(id: string) {
 }
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
-const tokenFromUrl = ref((route.query.token as string) ?? '')
+const storedToken = ref(localStorage.getItem('peyi_admin_token') || '')
 const passwordInput = ref('')
 const isAuthenticated = ref(false)
 const authError = ref('')
@@ -22,7 +21,7 @@ async function adminFetch(path: string, opts: RequestInit = {}) {
     ...opts,
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${tokenFromUrl.value}`,
+      'Authorization': `Bearer ${storedToken.value}`,
       ...opts.headers,
     },
   })
@@ -37,12 +36,11 @@ async function authenticate(tok: string) {
   authLoading.value = true
   authError.value = ''
   try {
-    // On teste le token en appelant list-surveys
     const res = await fetch('/api/admin/list-surveys', {
       headers: { Authorization: `Bearer ${tok}` },
     })
     if (res.ok) {
-      tokenFromUrl.value = tok
+      storedToken.value = tok
       isAuthenticated.value = true
       localStorage.setItem('peyi_admin_token', tok)
     } else {
@@ -188,9 +186,6 @@ function progressPct(n: number) {
   return Math.min(100, Math.round((n / 500) * 100))
 }
 
-// ── Communes ref ─────────────────────────────────────────────────────────────
-const communes = ref<{id: string, name: string}[]>([])
-
 // ── Demographics ──────────────────────────────────────────────────────────────
 interface DemoRow {
   demographics: {
@@ -226,8 +221,8 @@ function demoCount(key: 'age_group' | 'gender' | 'commune', val: string): number
 }
 
 function demoPercent(key: 'age_group' | 'gender' | 'commune', val: string): number {
-  if (!demoData.value.length) return 0
-  return Math.round((demoCount(key, val) / demoData.value.length) * 100)
+  if (!totalRespondents.value) return 0
+  return Math.round((demoCount(key, val) / totalRespondents.value) * 100)
 }
 
 const ageGroups = ['18-24', '25-34', '35-44', '45-54', '55-64', '65+']
@@ -249,14 +244,14 @@ const topCommunes = computed(() => {
     .map(([name, n]) => ({
       name,
       n,
-      pct: Math.round((n / demoData.value.length) * 100),
+      pct: Math.round((n / totalRespondents.value) * 100),
     }))
 })
 
 // ── Montage ───────────────────────────────────────────────────────────────────
 onMounted(async () => {
-  if (tokenFromUrl.value) {
-    await authenticate(tokenFromUrl.value)
+  if (storedToken.value) {
+    await authenticate(storedToken.value)
   }
 })
 
@@ -264,10 +259,6 @@ watch(isAuthenticated, async (v) => {
   if (v) {
     await loadSurveys()
     await loadDemographics()
-    try {
-      const communesData = await adminFetch('/api/admin/list-communes')
-      communes.value = communesData
-    } catch { /* ignore */ }
   }
 })
 </script>

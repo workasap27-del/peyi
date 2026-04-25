@@ -16,23 +16,37 @@ const adminToken = ref(localStorage.getItem('peyi_admin_token') || '')
 const showAdminAccess = ref(!!adminToken.value)
 const showPasswordModal = ref(false)
 const adminPasswordInput = ref('')
+const adminAuthError = ref('')
+const adminAuthLoading = ref(false)
 
-function tryAdminAccess() {
-  const viteToken = import.meta.env.VITE_ADMIN_TOKEN
-  if (adminPasswordInput.value === viteToken) {
-    localStorage.setItem('peyi_admin_token', adminPasswordInput.value)
-    adminToken.value = adminPasswordInput.value
-    showAdminAccess.value = true
-    showPasswordModal.value = false
-    menuOpen.value = false
-    router.push(`/admin/questions?token=${adminPasswordInput.value}`)
-  } else {
-    adminPasswordInput.value = ''
+async function tryAdminAccess() {
+  if (!adminPasswordInput.value) return
+  adminAuthError.value = ''
+  adminAuthLoading.value = true
+  try {
+    const res = await fetch('/api/admin/list-surveys', {
+      headers: { Authorization: `Bearer ${adminPasswordInput.value}` },
+    })
+    if (res.ok) {
+      localStorage.setItem('peyi_admin_token', adminPasswordInput.value)
+      adminToken.value = adminPasswordInput.value
+      showAdminAccess.value = true
+      showPasswordModal.value = false
+      menuOpen.value = false
+      router.push('/admin/questions')
+    } else {
+      adminAuthError.value = 'Mot de passe incorrect'
+      adminPasswordInput.value = ''
+    }
+  } catch {
+    adminAuthError.value = 'Erreur réseau'
+  } finally {
+    adminAuthLoading.value = false
   }
 }
 
 function goToAdmin() {
-  router.push(`/admin/questions?token=${adminToken.value}`)
+  router.push('/admin/questions')
   menuOpen.value = false
 }
 </script>
@@ -145,13 +159,17 @@ function goToAdmin() {
           v-model="adminPasswordInput"
           type="password"
           placeholder="Mot de passe"
-          class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm mb-4 focus:border-emerald-500 focus:outline-none"
+          class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm mb-2 focus:border-emerald-500 focus:outline-none"
+          :disabled="adminAuthLoading"
           @keyup.enter="tryAdminAccess"
         />
+        <p v-if="adminAuthError" class="text-red-500 text-xs mb-3">{{ adminAuthError }}</p>
+        <div v-else class="mb-3" />
         <button
-          class="w-full bg-emerald-600 text-white rounded-xl py-3 font-medium text-sm hover:bg-emerald-500 transition"
+          class="w-full bg-emerald-600 text-white rounded-xl py-3 font-medium text-sm hover:bg-emerald-500 transition disabled:opacity-40"
+          :disabled="adminAuthLoading || !adminPasswordInput"
           @click="tryAdminAccess"
-        >Accéder</button>
+        >{{ adminAuthLoading ? 'Vérification…' : 'Accéder' }}</button>
       </div>
     </div>
   </Transition>
