@@ -96,6 +96,16 @@ const hasData = computed(() => activeSurveysCount.value > 0 || uniqueCitizens.va
 function fmt(n: number): string {
   return n >= 1000 ? (n / 1000).toFixed(1) + 'k' : String(n)
 }
+
+const POPULATION_TOTALE = 378000
+
+const popPct = computed(() => {
+  const pct = uniqueCitizens.value / POPULATION_TOTALE * 100
+  if (pct === 0) return '0%'
+  if (pct < 0.01) return '< 0.01%'
+  if (pct >= 1) return pct.toFixed(1) + '%'
+  return pct.toFixed(2) + '%'
+})
 </script>
 
 <template>
@@ -123,14 +133,14 @@ function fmt(n: number): string {
         <div class="hidden sm:block w-px self-stretch bg-gray-200" />
         <div class="hidden sm:block text-center relative">
           <div class="flex items-center justify-center gap-1 mb-0.5">
-            <span class="text-sm leading-none">👥</span>
-            <span class="text-gray-900 font-bold text-base leading-none">{{ fmt(uniqueCitizens) }}</span>
+            <span class="text-gray-900 font-bold text-lg leading-none">{{ fmt(uniqueCitizens) }}</span>
             <span v-if="uniqueCitizens > 0" class="relative flex h-2 w-2 ml-0.5">
               <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
               <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
             </span>
           </div>
-          <p class="text-gray-400 text-[9px] uppercase tracking-wider">citoyens actifs</p>
+          <p class="text-gray-400 text-[10px] leading-none mb-0.5">({{ popPct }} de la pop.)</p>
+          <p class="text-gray-400 text-[9px] uppercase tracking-wider">citoyens</p>
         </div>
       </template>
 

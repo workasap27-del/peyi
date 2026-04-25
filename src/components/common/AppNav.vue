@@ -8,7 +8,7 @@ const menuOpen = ref(false)
 
 const tabs = [
   { name: 'Carte',      to: '/',            icon: '🗺️' },
-  { name: 'Sondages',   to: '/sondages',    icon: '📊' },
+  { name: 'Résultats',  to: '/sondages',    icon: '📊' },
 ]
 
 // ── Admin access ──────────────────────────────────────────────────────────────

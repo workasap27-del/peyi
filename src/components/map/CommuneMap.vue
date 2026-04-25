@@ -3,7 +3,7 @@ import { onMounted, onUnmounted, ref, watch } from 'vue'
 import type { Map as LMap, GeoJSON, Layer } from 'leaflet'
 import type L from 'leaflet'
 type LeafletInstance = typeof L
-import { participationColor, circleRadius } from '@/data/communeStats'
+import { participationColor, circleRadius, COMMUNE_POPULATION } from '@/data/communeStats'
 import type { CommuneStat } from '@/data/communeStats'
 import { useCommunesStore } from '@/stores/communes'
 import geojsonData from '@/data/communes-971.json'
@@ -91,20 +91,21 @@ function renderGeoLayer(L: LeafletInstance) {
       const stat = getStatForFeature(feature)
       if (!stat) return
 
-      const color = participationColor(stat.participantCount, mx)
+      const insee = feature.properties?.code as string | undefined
+      const pop = insee ? COMMUNE_POPULATION[insee] : undefined
+      let popLine = ''
+      if (pop && stat.participantCount > 0) {
+        const pct = stat.participantCount / pop * 100
+        const pctStr = pct < 0.01 ? '< 0.01%' : pct.toFixed(2) + '%'
+        popLine = `<div style="font-size:11px;color:rgba(255,255,255,0.7);margin-top:1px;">${pctStr} de la population</div>`
+      }
 
       layer.bindTooltip(`
-        <div style="font-family:Inter,sans-serif;min-width:150px;">
-          <div style="font-weight:700;font-size:13px;margin-bottom:4px;">${stat.displayName}</div>
-          <div style="font-size:11px;color:#555;margin-bottom:2px;">
-            👥 ${stat.participantCount} répondants
-          </div>
-          <div style="font-size:11px;font-weight:600;color:${color};">
-            📊 ${stat.activeSurveyCount} sondage${stat.activeSurveyCount !== 1 ? 's' : ''} actif${stat.activeSurveyCount !== 1 ? 's' : ''}
-          </div>
-          <div style="font-size:10px;color:#999;margin-top:4px;">
-            Cliquez pour participer →
-          </div>
+        <div style="font-family:Inter,sans-serif;min-width:150px;background:#111;border-radius:10px;padding:10px 12px;">
+          <div style="font-weight:700;font-size:13px;margin-bottom:5px;color:#fff;">${stat.displayName}</div>
+          <div style="font-size:12px;color:#fff;font-weight:600;">👥 ${stat.participantCount} répondants</div>
+          ${popLine}
+          <div style="font-size:10px;color:#999;margin-top:5px;">Cliquez pour participer →</div>
         </div>
       `, {
         direction: 'top',
@@ -214,8 +215,8 @@ onMounted(async () => {
   await communesStore.loadParticipation()
 
   map = L.map(mapEl.value, {
-    center: [16.3, -61.4],
-    zoom: 9,
+    center: [16.15, -61.55],
+    zoom: 10,
     zoomControl: false,
     attributionControl: false,
     minZoom: 7,
@@ -259,7 +260,7 @@ function resetSelection() {
 }
 
 function recenterMap() {
-  map?.setView([16.3, -61.4], 9)
+  map?.setView([16.15, -61.55], 10)
 }
 
 onUnmounted(() => {
@@ -350,13 +351,13 @@ defineExpose({ resetSelection })
 
 <style>
 .peyi-tooltip {
-  background: white;
-  border: none;
-  border-radius: 10px;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.18);
-  padding: 8px 12px;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
 }
-.peyi-tooltip::before { border-top-color: white !important; }
+.peyi-tooltip .leaflet-tooltip-content { padding: 0; }
+.peyi-tooltip::before { border-top-color: #111 !important; }
 .leaflet-container { font-family: 'Inter', sans-serif; }
 
 /* Fond mer naturel */

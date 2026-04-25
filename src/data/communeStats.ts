@@ -82,6 +82,46 @@ export const NOM_TO_CODE: Record<string, string> = {
   'Vieux-Habitants':                '97134',
 }
 
+/** Populations INSEE 2020 par code INSEE */
+export const COMMUNE_POPULATION: Record<string, number> = {
+  '97101': 58000,  // Les Abymes
+  '97102': 4500,   // Anse-Bertrand
+  '97103': 32000,  // Baie-Mahault
+  '97104': 6000,   // Baillif
+  '97105': 10000,  // Basse-Terre
+  '97106': 8000,   // Bouillante
+  '97107': 19000,  // Capesterre-Belle-Eau
+  '97108': 4000,   // Capesterre-de-Marie-Galante
+  '97109': 1700,   // La Désirade
+  '97110': 27000,  // Le Gosier
+  '97111': 4000,   // Deshaies
+  '97112': 6000,   // Grand-Bourg
+  '97113': 9000,   // Gourbeyre
+  '97114': 9000,   // Goyave
+  '97115': 13000,  // Le Lamentin
+  '97116': 22000,  // Le Moule
+  '97117': 27000,  // Le Gosier (doublon conservé pour compatibilité)
+  '97118': 17000,  // Morne-à-l'Eau
+  '97119': 4000,   // Petit-Canal
+  '97120': 15000,  // Pointe-à-Pitre
+  '97121': 7000,   // Pointe-Noire
+  '97122': 6000,   // Port-Louis
+  '97123': 10000,  // Saint-Barthélemy
+  '97124': 10000,  // Saint-Claude
+  '97125': 24000,  // Sainte-Anne
+  '97126': 4000,   // Saint-Louis (Marie-Galante)
+  '97127': 35000,  // Saint-Martin
+  '97128': 20000,  // Sainte-Rose
+  '97129': 1500,   // Terre-de-Bas
+  '97130': 1700,   // Terre-de-Haut
+  '97131': 8000,   // Trois-Rivières
+  '97132': 1500,   // Vieux-Fort
+  '97133': 8000,   // Vieux-Habitants
+  '97134': 22000,  // Petit-Bourg
+}
+
+export const POPULATION_TOTALE_GUADELOUPE = 378000
+
 /**
  * Couleur relative selon le nb de répondants et le maximum connu.
  * Vert clair si aucun répondant (communes visibles), vert vif si > 30% du max, orange sinon.

@@ -268,75 +268,73 @@ function toggleEmployment(v: EmploymentStatus) {
         <div
           v-if="phase === 'questions' && current"
           :key="currentIndex"
-          class="flex-1 flex flex-col px-5 pt-4 pb-5 gap-4"
+          class="flex-1 flex flex-col overflow-hidden"
         >
-          <!-- ── Card question ── -->
-          <div
-            class="relative rounded-3xl overflow-hidden flex-1 flex flex-col justify-between p-6 min-h-0"
-            style="background: linear-gradient(145deg, #059669 0%, #0891b2 100%)"
-          >
-            <div class="absolute -top-8 -right-8 w-40 h-40 rounded-full bg-white/10 pointer-events-none" />
-            <div class="absolute -bottom-10 -left-10 w-48 h-48 rounded-full bg-black/10 pointer-events-none" />
-            <div class="relative z-10">
-              <span class="inline-flex items-center gap-1.5 bg-black/20 text-white/80 text-[11px] font-bold uppercase tracking-widest px-3 py-1 rounded-full">
-                <span class="w-1.5 h-1.5 rounded-full bg-emerald-300 inline-block animate-pulse" />
-                Question {{ currentIndex + 1 }} / {{ questions.length }}
-              </span>
-            </div>
-            <p class="relative z-10 text-white text-[26px] font-black leading-tight text-center flex-1 flex items-center justify-center py-4">
-              {{ current.label }}
-            </p>
-            <div class="relative z-10 text-center">
-              <span v-if="current.type === 'single' || current.type === 'radio'" class="text-white/50 text-xs">Choix unique</span>
-              <span v-else-if="current.type === 'multiple'" class="text-white/50 text-xs">Plusieurs réponses possibles</span>
-              <span v-else-if="current.type === 'scale'" class="text-white/50 text-xs">Note de {{ current.min ?? 1 }} à {{ current.max ?? 5 }}</span>
+          <!-- ── Card question (hauteur fixe max 40vh) ── -->
+          <div class="px-5 pt-4 shrink-0">
+            <div
+              class="relative rounded-2xl overflow-hidden flex flex-col justify-between p-5"
+              style="background: linear-gradient(145deg, #059669 0%, #0891b2 100%); max-height: 40vh;"
+            >
+              <div class="absolute -top-8 -right-8 w-40 h-40 rounded-full bg-white/10 pointer-events-none" />
+              <div class="absolute -bottom-10 -left-10 w-48 h-48 rounded-full bg-black/10 pointer-events-none" />
+              <div class="relative z-10 mb-3">
+                <span class="inline-flex items-center gap-1.5 bg-black/20 text-white/80 text-[11px] font-bold uppercase tracking-widest px-3 py-1 rounded-full">
+                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-300 inline-block animate-pulse" />
+                  Question {{ currentIndex + 1 }} / {{ questions.length }}
+                </span>
+              </div>
+              <p class="relative z-10 text-white text-lg font-bold leading-snug text-center py-3">
+                {{ current.label }}
+              </p>
+              <div class="relative z-10 text-center mt-2">
+                <span v-if="current.type === 'single' || current.type === 'radio'" class="text-white/60 text-xs">Choix unique</span>
+                <span v-else-if="current.type === 'multiple'" class="text-white/60 text-xs">Choix multiple</span>
+                <span v-else-if="current.type === 'scale'" class="text-white/60 text-xs">Note de {{ current.min ?? 1 }} à {{ current.max ?? 5 }}</span>
+              </div>
             </div>
           </div>
 
           <!-- Radio (single choice) -->
-          <div v-if="current.type === 'single' || current.type === 'radio'" class="space-y-2.5 shrink-0">
+          <div v-if="current.type === 'single' || current.type === 'radio'" class="flex-1 overflow-y-auto px-4 py-3 space-y-2">
             <button
               v-for="(opt, idx) in current.options"
               :key="opt"
-              class="w-full flex items-center gap-3.5 px-4 py-3.5 rounded-2xl border-2 transition-all duration-150 active:scale-[0.98]"
+              class="w-full flex items-center gap-3 px-4 py-3 rounded-xl border min-h-[52px] transition-all duration-150 active:scale-[0.98]"
               :class="answers[current.id] === opt
-                ? 'bg-emerald-500 border-emerald-400 scale-[1.01]'
-                : 'bg-white/8 border-white/12 hover:bg-white/14 hover:border-white/25'"
+                ? 'bg-emerald-700 border-emerald-500 text-white'
+                : 'bg-gray-900 border-gray-700 text-white hover:border-gray-500'"
               @click="selectSingle(current.id, opt)"
             >
               <span
-                class="w-8 h-8 rounded-xl flex items-center justify-center text-sm font-black shrink-0 transition-all"
+                class="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-black shrink-0 transition-all"
                 :class="answers[current.id] === opt ? 'bg-white/25 text-white' : 'bg-white/10 text-white/50'"
               >{{ String.fromCharCode(65 + idx) }}</span>
-              <span class="text-white font-semibold text-[15px] flex-1 text-left">{{ opt }}</span>
-              <svg v-if="answers[current.id] === opt" class="w-5 h-5 text-white shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
-              </svg>
+              <span class="text-base flex-1 text-left">{{ opt }}</span>
+              <span v-if="answers[current.id] === opt" class="shrink-0 text-white font-bold">✓</span>
             </button>
           </div>
 
           <!-- Choix multiples -->
-          <div v-else-if="current.type === 'multiple'" class="space-y-2.5 shrink-0">
+          <div v-else-if="current.type === 'multiple'" class="flex-1 overflow-y-auto px-4 py-3 space-y-2">
             <button
               v-for="(opt, idx) in current.options"
               :key="opt"
-              class="w-full flex items-center gap-3.5 px-4 py-3.5 rounded-2xl border-2 transition-all duration-150 active:scale-[0.98]"
+              class="w-full flex items-center gap-3 px-4 py-3 rounded-xl border min-h-[52px] transition-all duration-150 active:scale-[0.98]"
               :class="(answers[current.id] as string[] ?? []).includes(opt)
-                ? 'bg-emerald-500 border-emerald-400'
-                : 'bg-white/8 border-white/12 hover:bg-white/14 hover:border-white/25'"
+                ? 'bg-emerald-700 border-emerald-500 text-white'
+                : 'bg-gray-900 border-gray-700 text-white hover:border-gray-500'"
               @click="toggleMultiple(current.id, opt)"
             >
               <span
-                class="w-8 h-8 rounded-xl flex items-center justify-center text-sm font-black shrink-0"
+                class="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-black shrink-0"
                 :class="(answers[current.id] as string[] ?? []).includes(opt) ? 'bg-white/25 text-white' : 'bg-white/10 text-white/50'"
               >{{ String.fromCharCode(65 + idx) }}</span>
-              <span class="text-white font-semibold text-[15px] flex-1 text-left">{{ opt }}</span>
-              <svg v-if="(answers[current.id] as string[] ?? []).includes(opt)" class="w-5 h-5 text-white shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
-              </svg>
+              <span class="text-base flex-1 text-left">{{ opt }}</span>
+              <span v-if="(answers[current.id] as string[] ?? []).includes(opt)" class="shrink-0 text-white font-bold">✓</span>
             </button>
             <button
-              class="w-full py-4 rounded-2xl font-bold text-base mt-1 transition active:scale-[0.98]"
+              class="w-full py-4 rounded-2xl font-bold text-base mt-2 transition active:scale-[0.98]"
               :class="(answers[current.id] as string[] ?? []).length > 0 ? 'bg-emerald-500 text-white' : 'bg-white/10 text-white/30 cursor-not-allowed'"
               :disabled="(answers[current.id] as string[] ?? []).length === 0"
               @click="next"
@@ -344,7 +342,7 @@ function toggleEmployment(v: EmploymentStatus) {
           </div>
 
           <!-- Échelle -->
-          <div v-else-if="current.type === 'scale'" class="space-y-4 shrink-0">
+          <div v-else-if="current.type === 'scale'" class="flex-1 overflow-y-auto px-4 py-3 space-y-4">
             <div class="text-center text-5xl transition-all duration-200">
               {{ scaleEmoji(Number(answers[current!.id] ?? current!.min ?? 1), current!.max ?? 5) }}
             </div>
@@ -371,7 +369,7 @@ function toggleEmployment(v: EmploymentStatus) {
           </div>
 
           <!-- Texte libre -->
-          <div v-else-if="current.type === 'text'" class="space-y-3 shrink-0">
+          <div v-else-if="current.type === 'text'" class="flex-1 overflow-y-auto px-4 py-3 space-y-3">
             <textarea
               v-model="answers[current.id] as string"
               rows="4"

@@ -1,18 +1,18 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import type { Survey } from '@/types'
 import { useSurveysStore } from '@/stores/surveys'
+import { NOM_TO_CODE, COMMUNE_POPULATION } from '@/data/communeStats'
+
 const props = defineProps<{ id: string }>()
 const router = useRouter()
 const store = useSurveysStore()
 
 const survey = ref<Survey | null>(null)
 const loading = ref(true)
-const resultsRef = ref<HTMLElement | null>(null)
 const toastMsg = ref<string | null>(null)
 
-// ── Chargement ────────────────────────────────────────────────────────────────
 onMounted(async () => {
   if (!store.surveys.length) await store.loadSurveys()
   survey.value = store.getSurveyById(props.id) ?? null
@@ -25,158 +25,87 @@ onMounted(async () => {
   loading.value = false
 })
 
-// ── Réponses et calculs ───────────────────────────────────────────────────────
 const responses = computed(() => store.getResponses(props.id))
 const n = computed(() => responses.value.length)
 
-/** Marge d'erreur standard : 1/√n × 100, arrondie à 1 décimale */
-const marginError = computed(() => {
-  if (n.value < 2) return null
-  return Math.round((1 / Math.sqrt(n.value)) * 100 * 10) / 10
-})
-
-/** Label fiabilité humain */
 const reliabilityBadge = computed((): { label: string; cls: string } => {
-  if (n.value >= 500) return { label: 'Représentatif ★', cls: 'bg-emerald-100 text-emerald-800' }
-  if (n.value >= 200) return { label: 'Résultats fiables ✓', cls: 'bg-blue-100 text-blue-800' }
-  if (n.value >= 50)  return { label: 'Tendance en cours 📊', cls: 'bg-amber-100 text-amber-800' }
-  return { label: 'Début de l\'enquête 🌱', cls: 'bg-gray-100 text-gray-600' }
+  if (n.value >= 500) return { label: 'Représentatif ★',       cls: 'bg-emerald-100 text-emerald-700' }
+  if (n.value >= 200) return { label: 'Résultats fiables ✓',  cls: 'bg-blue-100 text-blue-700' }
+  if (n.value >= 50)  return { label: 'Tendance en cours 📊', cls: 'bg-amber-100 text-amber-700' }
+  return                      { label: 'Début de l\'enquête 🌱', cls: 'bg-gray-100 text-gray-600' }
 })
 
-/** Calcul résultats par option pour la première question */
 const q1Options = computed(() => {
-  const opts = survey.value?.questions?.[0]?.options as string[] ?? []
+  const opts = (survey.value?.questions?.[0]?.options as string[]) ?? []
   const counts: Record<string, number> = {}
-  opts.forEach(o => counts[o] = 0)
+  opts.forEach(o => { counts[o] = 0 })
   for (const r of responses.value) {
     const ans = (r.answers as Record<string, string>)?.q1
     if (ans && ans in counts) counts[ans]++
   }
-  return opts.map(o => ({ label: o, count: counts[o], pct: n.value > 0 ? Math.round(counts[o] / n.value * 100) : 0 }))
+  return opts.map(o => ({
+    label: o,
+    count: counts[o],
+    pct: n.value > 0 ? Math.round(counts[o] / n.value * 100) : 0,
+  }))
 })
 
-/** Ventilation démographique */
+const topAnswer = computed(() => {
+  if (!q1Options.value.length || n.value === 0) return null
+  return q1Options.value.reduce((a, b) => b.pct > a.pct ? b : a)
+})
+
+const periodLabel = computed(() => {
+  if (!survey.value) return ''
+  const from = new Date(survey.value.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
+  const to = survey.value.ends_at
+    ? new Date(survey.value.ends_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
+    : 'en cours'
+  return `Du ${from} au ${to}`
+})
+
 const demoBreakdown = computed(() => {
   const genre: Record<string, number> = {}
   const age: Record<string, number> = {}
   const commune: Record<string, number> = {}
   for (const r of responses.value) {
     const d = r.demographics as Record<string, string> | null
-    if (d?.gender) genre[d.gender] = (genre[d.gender] ?? 0) + 1
-    if (d?.age_group) age[d.age_group] = (age[d.age_group] ?? 0) + 1
-    if (d?.commune) commune[d.commune] = (commune[d.commune] ?? 0) + 1
+    if (d?.gender)    genre[d.gender]     = (genre[d.gender] ?? 0) + 1
+    if (d?.age_group) age[d.age_group]    = (age[d.age_group] ?? 0) + 1
+    if (d?.commune)   commune[d.commune]  = (commune[d.commune] ?? 0) + 1
   }
   return { genre, age, commune }
 })
 
-/** Détection biais automatique */
-const biasFlags = computed(() => {
-  const flags: string[] = []
-  if (n.value < 50) flags.push('Résultats indicatifs uniquement (n < 50)')
-  if (n.value > 0) {
-    for (const [c, cnt] of Object.entries(demoBreakdown.value.commune)) {
-      if ((cnt as number) / n.value > 0.4) flags.push(`Biais géographique : ${c} surreprésentée (${Math.round((cnt as number)/n.value*100)}%)`)
-    }
-    for (const [a, cnt] of Object.entries(demoBreakdown.value.age)) {
-      if ((cnt as number) / n.value > 0.5) flags.push(`Biais démographique : tranche ${a} surreprésentée (${Math.round((cnt as number)/n.value*100)}%)`)
-    }
-  }
-  return flags
+const dominantGender = computed(() => {
+  const entries = Object.entries(demoBreakdown.value.genre)
+  if (!entries.length) return '—'
+  const [val] = entries.reduce((a, b) => b[1] > a[1] ? b : a)
+  const labels: Record<string, string> = { homme: 'Homme', femme: 'Femme', autre: 'Autre' }
+  return labels[val] ?? val
 })
 
-// ── Charts avec Chart.js ──────────────────────────────────────────────────────
-const donutRef = ref<HTMLCanvasElement | null>(null)
-const barAgeRef = ref<HTMLCanvasElement | null>(null)
-const barGenreRef = ref<HTMLCanvasElement | null>(null)
-const barCommuneRef = ref<HTMLCanvasElement | null>(null)
+const dominantAge = computed(() => {
+  const entries = Object.entries(demoBreakdown.value.age)
+  if (!entries.length) return '—'
+  return entries.reduce((a, b) => b[1] > a[1] ? b : a)[0]
+})
 
-let donutChart: any = null
-let barAgeChart: any = null
-let barGenreChart: any = null
-let barCommuneChart: any = null
+const topCommuneLabel = computed(() => {
+  const entries = Object.entries(demoBreakdown.value.commune)
+  if (!entries.length) return '—'
+  return entries.reduce((a, b) => b[1] > a[1] ? b : a)[0]
+})
 
-const COLORS = ['#10b981', '#6ee7b7', '#f59e0b', '#f87171']
-
-async function buildCharts() {
-  const { Chart, registerables } = await import('chart.js')
-  Chart.register(...registerables)
-
-  // Donut — résultats globaux
-  if (donutRef.value) {
-    donutChart?.destroy()
-    donutChart = new Chart(donutRef.value, {
-      type: 'doughnut',
-      data: {
-        labels: q1Options.value.map(o => o.label),
-        datasets: [{ data: q1Options.value.map(o => o.count || 1), backgroundColor: COLORS, borderWidth: 0 }],
-      },
-      options: { responsive: true, plugins: { legend: { position: 'bottom', labels: { font: { size: 11 }, color: '#6b7280' } } } },
-    })
-  }
-
-  // Barres genre
-  if (barGenreRef.value && Object.keys(demoBreakdown.value.genre).length) {
-    barGenreChart?.destroy()
-    const labels = Object.keys(demoBreakdown.value.genre)
-    barGenreChart = new Chart(barGenreRef.value, {
-      type: 'bar',
-      data: { labels, datasets: [{ data: labels.map(l => demoBreakdown.value.genre[l]), backgroundColor: '#818cf8', borderRadius: 4 }] },
-      options: { indexAxis: 'y', responsive: true, plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true } } },
-    })
-  }
-
-  // Barres âge
-  if (barAgeRef.value && Object.keys(demoBreakdown.value.age).length) {
-    barAgeChart?.destroy()
-    const labels = Object.keys(demoBreakdown.value.age)
-    barAgeChart = new Chart(barAgeRef.value, {
-      type: 'bar',
-      data: { labels, datasets: [{ data: labels.map(l => demoBreakdown.value.age[l]), backgroundColor: '#34d399', borderRadius: 4 }] },
-      options: { indexAxis: 'y', responsive: true, plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true } } },
-    })
-  }
-
-  // Barres communes top 8
-  if (barCommuneRef.value && Object.keys(demoBreakdown.value.commune).length) {
-    barCommuneChart?.destroy()
-    const sorted = Object.entries(demoBreakdown.value.commune).sort((a, b) => (b[1] as number) - (a[1] as number)).slice(0, 8)
-    barCommuneChart = new Chart(barCommuneRef.value, {
-      type: 'bar',
-      data: { labels: sorted.map(e => e[0]), datasets: [{ data: sorted.map(e => e[1]), backgroundColor: '#fb923c', borderRadius: 4 }] },
-      options: { indexAxis: 'y', responsive: true, plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true } } },
-    })
-  }
-}
-
-watch([survey, responses], async () => {
-  if (survey.value) await buildCharts()
-}, { immediate: false })
-
-onMounted(async () => {
-  // Attendre que les données soient chargées puis construire les charts
-  const unwatch = watch(loading, async (v) => {
-    if (!v && survey.value) {
-      await buildCharts()
-      unwatch()
-    }
+const communeParticipation = computed(() => {
+  const entries = Object.entries(demoBreakdown.value.commune)
+    .sort((a, b) => b[1] - a[1])
+  return entries.map(([name, count]) => {
+    const code = NOM_TO_CODE[name]
+    const pop = code ? COMMUNE_POPULATION[code] : undefined
+    const popPct = pop ? (count / pop * 100) : null
+    return { name, count, popPct }
   })
-})
-
-onUnmounted(() => {
-  donutChart?.destroy()
-  barAgeChart?.destroy()
-  barGenreChart?.destroy()
-  barCommuneChart?.destroy()
-})
-
-// ── Dates ─────────────────────────────────────────────────────────────────────
-const periodLabel = computed(() => {
-  if (!survey.value) return ''
-  const from = new Date(survey.value.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })
-  const to = survey.value.ends_at
-    ? new Date(survey.value.ends_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })
-    : 'en cours'
-  return `${from} → ${to}`
 })
 
 const answered = computed(() => store.hasAnswered(props.id))
@@ -184,7 +113,6 @@ const answered = computed(() => store.hasAnswered(props.id))
 function goParticipate() {
   router.push(`/participer/${props.id}`)
 }
-
 </script>
 
 <template>
@@ -196,136 +124,122 @@ function goParticipate() {
     <div class="text-center px-6">
       <div class="text-4xl mb-4">🔍</div>
       <p class="text-gray-700 font-semibold mb-1">Sondage introuvable</p>
-      <p class="text-gray-400 text-sm mb-4">Redirection vers les sondages…</p>
-      <div v-if="toastMsg" class="bg-amber-50 border border-amber-200 text-amber-800 text-sm px-4 py-2 rounded-xl">
-        {{ toastMsg }}
-      </div>
+      <p class="text-gray-400 text-sm mb-4">{{ toastMsg }}</p>
     </div>
   </div>
 
-  <div v-else class="min-h-screen bg-gray-50">
+  <div v-else class="min-h-screen bg-gray-50 pb-28">
 
-    <!-- Bouton retour -->
-    <div class="sticky top-0 z-10 bg-white border-b border-gray-100 px-4 py-3 flex items-center gap-3">
-      <button class="text-gray-500 hover:text-gray-800 transition flex items-center gap-1 text-sm" @click="router.back()">
-        ← Retour
-      </button>
-      <span class="text-gray-300">|</span>
-      <span class="text-sm font-medium text-gray-700 truncate">Résultats</span>
+    <!-- ── Section 1 : Header ─────────────────────────────────────────────── -->
+    <div class="bg-white px-4 pt-6 pb-4">
+      <button
+        class="text-gray-500 text-sm flex items-center gap-1 mb-3 hover:text-gray-800 transition"
+        @click="router.back()"
+      >← Retour</button>
+
+      <div class="flex items-start justify-between gap-3">
+        <h1 class="text-gray-900 font-bold text-xl leading-snug flex-1">{{ survey.title }}</h1>
+        <span
+          class="shrink-0 px-2.5 py-1 rounded-full text-xs font-semibold"
+          :class="reliabilityBadge.cls"
+        >{{ reliabilityBadge.label }}</span>
+      </div>
+      <p class="text-gray-400 text-sm mt-1">{{ periodLabel }}</p>
     </div>
 
-    <div ref="resultsRef" class="max-w-2xl mx-auto px-4 pb-24 pt-6 space-y-6">
-
-      <!-- ── Header ──────────────────────────────────────────────────────── -->
-      <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
-        <h1 class="text-lg font-bold text-gray-900 leading-snug mb-3">{{ survey.title }}</h1>
-
-        <div class="flex flex-wrap gap-2 items-center text-sm">
-          <span class="text-gray-500">{{ periodLabel }}</span>
-          <span class="text-gray-300">·</span>
-          <span class="font-semibold text-gray-800">{{ n }} répondant{{ n !== 1 ? 's' : '' }}</span>
-          <span v-if="marginError" class="text-gray-500">± {{ marginError }}%</span>
-          <span
-            class="px-2 py-0.5 rounded-full text-xs font-bold"
-            :class="reliabilityBadge.cls"
-          >{{ reliabilityBadge.label }}</span>
-        </div>
+    <!-- ── Section 2 : Résultat dominant ─────────────────────────────────── -->
+    <div class="bg-gray-950 rounded-2xl mx-4 mt-4 p-6">
+      <div v-if="n === 0" class="text-center py-4">
+        <p class="text-gray-500 text-sm animate-pulse">Aucune réponse pour l'instant</p>
       </div>
-
-      <!-- ── Résultats globaux (donut + barres) ─────────────────────────── -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-
-        <!-- Donut -->
-        <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
-          <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Résultat global</p>
-          <div v-if="n === 0" class="text-center text-gray-400 text-sm py-8">Aucune réponse</div>
-          <canvas v-else ref="donutRef" />
-        </div>
-
-        <!-- Barres résultats -->
-        <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 space-y-2">
-          <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Détail</p>
-          <div v-for="opt in q1Options" :key="opt.label" class="space-y-1">
-            <div class="flex justify-between text-xs">
-              <span class="text-gray-700 truncate max-w-[75%]">{{ opt.label }}</span>
-              <span class="font-semibold text-gray-900">{{ opt.pct }}%</span>
-            </div>
-            <div class="h-2 bg-gray-100 rounded-full overflow-hidden">
-              <div class="h-full bg-emerald-500 rounded-full transition-all duration-700" :style="{ width: opt.pct + '%' }" />
-            </div>
-          </div>
-        </div>
+      <div v-else class="text-center">
+        <p class="text-emerald-400 font-bold text-5xl leading-none mb-2">{{ topAnswer?.pct }}%</p>
+        <p class="text-white font-black text-3xl leading-snug mb-1">{{ topAnswer?.label }}</p>
+        <p class="text-white/50 text-sm mb-4">des répondants</p>
+        <p class="text-white/40 text-xs">sur {{ n }} personne{{ n > 1 ? 's' : '' }} interrogée{{ n > 1 ? 's' : '' }}</p>
       </div>
+    </div>
 
-      <!-- ── Ventilation démographique ──────────────────────────────────── -->
-      <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
-        <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">Ventilation démographique</p>
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div>
-            <p class="text-xs text-gray-500 mb-2 font-medium">Genre</p>
-            <div v-if="Object.keys(demoBreakdown.genre).length === 0" class="text-xs text-gray-400">Non renseigné</div>
-            <canvas v-else ref="barGenreRef" />
-          </div>
-          <div>
-            <p class="text-xs text-gray-500 mb-2 font-medium">Âge</p>
-            <div v-if="Object.keys(demoBreakdown.age).length === 0" class="text-xs text-gray-400">Non renseigné</div>
-            <canvas v-else ref="barAgeRef" />
-          </div>
-          <div>
-            <p class="text-xs text-gray-500 mb-2 font-medium">Top communes</p>
-            <div v-if="Object.keys(demoBreakdown.commune).length === 0" class="text-xs text-gray-400">Non renseigné</div>
-            <canvas v-else ref="barCommuneRef" />
-          </div>
+    <!-- ── Section 3 : Détail des réponses ───────────────────────────────── -->
+    <div class="bg-white px-4 mt-4 pt-4 pb-2">
+      <p class="text-gray-400 text-xs uppercase tracking-wider mb-3">Répartition des réponses</p>
+      <div
+        v-for="opt in q1Options"
+        :key="opt.label"
+        class="mb-4"
+      >
+        <div class="flex justify-between items-center mb-1">
+          <span class="text-gray-900 text-sm font-medium">{{ opt.label }}</span>
+          <span class="text-gray-900 text-sm font-bold">{{ opt.pct }}%</span>
         </div>
-      </div>
-
-      <!-- ── Heatmap communes ────────────────────────────────────────────── -->
-      <div v-if="Object.keys(demoBreakdown.commune).length > 0" class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
-        <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Participation par commune</p>
-        <div class="flex flex-wrap gap-2">
+        <div class="h-2 bg-gray-100 rounded-full overflow-hidden">
           <div
-            v-for="[commune, cnt] in Object.entries(demoBreakdown.commune).sort((a,b) => (b[1] as number)-(a[1] as number))"
-            :key="commune"
-            class="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium"
-            :style="{
-              background: `rgba(16,185,129,${Math.min(0.9, (cnt as number) / Math.max(...Object.values(demoBreakdown.commune).map(Number)) * 0.9 + 0.1)})`,
-              color: (cnt as number) / Math.max(...Object.values(demoBreakdown.commune).map(Number)) > 0.5 ? 'white' : '#065f46'
-            }"
-          >
-            {{ commune }} <span class="opacity-75">({{ cnt }})</span>
+            class="h-full rounded-full transition-all duration-700"
+            :class="opt === topAnswer ? 'bg-emerald-600' : 'bg-gray-300'"
+            :style="{ width: opt.pct + '%' }"
+          />
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Section 4 : Participation par commune ─────────────────────────── -->
+    <div class="bg-gray-50 rounded-2xl mx-4 mt-4 p-5">
+      <p class="text-gray-400 text-xs uppercase tracking-wider mb-3">Participation par commune</p>
+      <div v-if="communeParticipation.length">
+        <div
+          v-for="c in communeParticipation"
+          :key="c.name"
+          class="mb-2"
+        >
+          <div class="flex justify-between items-center mb-0.5">
+            <span class="text-gray-700 text-sm">{{ c.name }}</span>
+            <span class="text-gray-500 text-xs">
+              {{ c.count }} rép.
+              <span v-if="c.popPct !== null">({{ c.popPct < 0.01 ? '< 0.01' : c.popPct.toFixed(2) }}%)</span>
+            </span>
+          </div>
+          <div class="h-1.5 bg-gray-200 rounded-full overflow-hidden">
+            <div
+              class="h-full bg-emerald-500 rounded-full transition-all duration-700"
+              :style="{ width: (c.popPct !== null ? Math.min(100, c.popPct * 20) : Math.min(100, c.count / Math.max(...communeParticipation.map(x => x.count)) * 100)) + '%' }"
+            />
           </div>
         </div>
       </div>
-
-      <!-- ── Points de vigilance ────────────────────────────────────────── -->
-      <div v-if="biasFlags.length" class="bg-amber-50 border border-amber-200 rounded-2xl p-5">
-        <div class="flex items-center gap-2 mb-3">
-          <span class="text-amber-500 text-lg">⚠️</span>
-          <p class="text-sm font-semibold text-amber-800">Points de vigilance méthodologiques</p>
-        </div>
-        <ul class="space-y-1">
-          <li v-for="flag in biasFlags" :key="flag" class="text-xs text-amber-700 flex items-start gap-2">
-            <span class="mt-0.5 shrink-0">•</span>{{ flag }}
-          </li>
-        </ul>
-      </div>
-
-      <!-- ── Bouton participer ───────────────────────────────────────────── -->
-      <div v-if="!answered && survey.is_active !== false" class="bg-emerald-50 border border-emerald-200 rounded-2xl p-5 text-center">
-        <p class="text-sm text-emerald-800 font-medium mb-3">Tu n'as pas encore répondu à ce sondage.</p>
-        <button
-          class="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2 rounded-xl font-semibold text-sm transition"
-          @click="goParticipate"
-        >
-          Participer maintenant →
-        </button>
-      </div>
-
-      <!-- Export PDF — abonnement pro -->
-      <p class="text-gray-400 text-xs text-center italic">
-        Export PDF disponible avec un abonnement professionnel
-      </p>
-
+      <p v-else class="text-gray-400 text-sm italic">Données géographiques non disponibles</p>
     </div>
+
+    <!-- ── Section 5 : Profil des répondants ─────────────────────────────── -->
+    <div class="bg-white border border-gray-100 rounded-2xl mx-4 mt-4 p-5">
+      <p class="text-gray-400 text-xs uppercase tracking-wider mb-3">Profil des répondants</p>
+      <div class="grid grid-cols-3 gap-3">
+        <div class="text-center">
+          <p class="text-gray-900 font-bold text-base">{{ dominantGender }}</p>
+          <p class="text-gray-400 text-xs mt-0.5">Genre</p>
+        </div>
+        <div class="text-center">
+          <p class="text-gray-900 font-bold text-base">{{ dominantAge }}</p>
+          <p class="text-gray-400 text-xs mt-0.5">Tranche d'âge</p>
+        </div>
+        <div class="text-center">
+          <p class="text-gray-900 font-bold text-sm truncate">{{ topCommuneLabel }}</p>
+          <p class="text-gray-400 text-xs mt-0.5">Top commune</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Section 6 : CTA participation ─────────────────────────────────── -->
+    <div
+      v-if="!answered && survey.is_active !== false"
+      class="bg-emerald-50 border border-emerald-200 rounded-2xl mx-4 mt-2 mb-6 p-5 text-center"
+    >
+      <p class="text-emerald-800 text-sm mb-3">Tu n'as pas encore répondu à ce sondage.</p>
+      <button
+        class="bg-emerald-600 text-white rounded-full py-3 px-6 font-medium text-sm hover:bg-emerald-700 transition"
+        @click="goParticipate"
+      >Participer maintenant →</button>
+      <p class="text-gray-400 text-xs italic mt-3">Export PDF disponible avec un abonnement professionnel</p>
+    </div>
+
   </div>
 </template>

@@ -10,8 +10,6 @@ onMounted(async () => {
   if (!store.surveys.length) await store.loadSurveys()
 })
 
-// Sondages flash uniquement (recurrence_type flash_daily ou null/undefined)
-// Exclut les baromètres trimestriels permanent_quarterly
 const globalSurveys = computed(() =>
   store.surveys
     .filter(s =>
@@ -23,33 +21,27 @@ const globalSurveys = computed(() =>
 )
 
 const activeSurvey = computed(() => globalSurveys.value[0] ?? null)
-const hasActive = computed(() => activeSurvey.value !== null)
+
+const questionLabel = computed(() => {
+  const q = activeSurvey.value?.title ?? ''
+  return q.length > 60 ? q.slice(0, 60) + '…' : q
+})
 
 function participate() {
-  if (activeSurvey.value) {
-    router.push(`/participer/${activeSurvey.value.id}`)
-  }
+  if (activeSurvey.value) router.push(`/participer/${activeSurvey.value.id}`)
 }
 </script>
 
 <template>
-  <!-- Bouton flottant centré, au-dessus de la bottom nav (bottom-[57px]) -->
-  <div class="absolute bottom-[68px] inset-x-0 z-[1500] flex justify-center pointer-events-none px-4">
+  <div class="absolute bottom-20 left-1/2 -translate-x-1/2 z-[1001] max-w-sm w-full px-4">
     <button
-      v-if="hasActive"
-      class="pointer-events-auto flex items-center gap-2 px-5 py-3 rounded-2xl shadow-xl font-semibold text-sm text-white transition active:scale-[0.97]"
-      style="background: #065f46;"
+      v-if="activeSurvey"
+      class="w-full flex items-center gap-3 bg-emerald-700 text-white px-5 py-3 rounded-2xl shadow-lg transition active:scale-[0.98]"
       @click="participate"
     >
-      <span>🗳️</span>
-      <span>Répondre au sondage du moment</span>
+      <span class="text-lg shrink-0">🗳️</span>
+      <span class="flex-1 text-sm font-medium text-left leading-snug">{{ questionLabel }}</span>
+      <span class="shrink-0 text-base">→</span>
     </button>
-    <div
-      v-else
-      class="pointer-events-none px-5 py-3 rounded-2xl text-sm text-white/60 font-medium"
-      style="background: rgba(0,0,0,0.4);"
-    >
-      Aucun sondage global en cours
-    </div>
   </div>
 </template>
