@@ -1,11 +1,9 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
-import { useRouter } from 'vue-router'
-
-const router = useRouter()
+import { NOM_TO_CODE, COMMUNE_POPULATION } from '@/data/communeStats'
 
 function openResults(id: string) {
-  router.push(`/sondages/${id}`)
+  window.open(`/sondages/${id}`, '_blank')
 }
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
@@ -15,7 +13,6 @@ const isAuthenticated = ref(false)
 const authError = ref('')
 const authLoading = ref(false)
 
-// Helper : appels API admin avec token dans Authorization header
 async function adminFetch(path: string, opts: RequestInit = {}) {
   const res = await fetch(path, {
     ...opts,
@@ -52,6 +49,9 @@ async function authenticate(tok: string) {
     authLoading.value = false
   }
 }
+
+// ── Onglets ───────────────────────────────────────────────────────────────────
+const activeTab = ref<'active' | 'archives'>('active')
 
 // ── Formulaire ────────────────────────────────────────────────────────────────
 const title = ref('')
@@ -115,7 +115,6 @@ async function publish() {
     if (scope.value === 'quarterly') {
       description = description ? `${description} — permanent_quarterly` : 'permanent_quarterly'
     }
-
     await adminFetch('/api/admin/create-survey', {
       method: 'POST',
       body: JSON.stringify({
@@ -126,7 +125,6 @@ async function publish() {
         ends_at: endsAt.value?.toISOString() ?? null,
       }),
     })
-
     showToast('Sondage publié ✓', 'success')
     title.value = ''
     context.value = ''
@@ -139,7 +137,7 @@ async function publish() {
   }
 }
 
-// ── Sondages actifs ───────────────────────────────────────────────────────────
+// ── Sondages ──────────────────────────────────────────────────────────────────
 const activeSurveys = ref<any[]>([])
 const closedSurveys = ref<any[]>([])
 const surveysLoading = ref(false)
@@ -171,9 +169,9 @@ async function closeSurvey(id: string) {
   }
 }
 
-function timeLeft(endsAt: string | null): string {
-  if (!endsAt) return 'Sans limite'
-  const diff = new Date(endsAt).getTime() - Date.now()
+function timeLeft(endsAtStr: string | null): string {
+  if (!endsAtStr) return 'Sans limite'
+  const diff = new Date(endsAtStr).getTime() - Date.now()
   if (diff <= 0) return 'Expiré'
   const h = Math.floor(diff / 3600000)
   const d = Math.floor(h / 24)
@@ -186,7 +184,12 @@ function progressPct(n: number) {
   return Math.min(100, Math.round((n / 500) * 100))
 }
 
-// ── Demographics ──────────────────────────────────────────────────────────────
+function fmtDate(d: string | null | undefined): string {
+  if (!d) return '—'
+  return new Date(d).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })
+}
+
+// ── Demographics & réponses ───────────────────────────────────────────────────
 interface DemoRow {
   demographics: {
     age_group?: string
@@ -197,6 +200,7 @@ interface DemoRow {
   } | null
   respondent_id: string
   survey_id: string
+  answers?: Record<string, string | string[] | number> | null
 }
 
 const demoData = ref<DemoRow[]>([])
@@ -248,11 +252,89 @@ const topCommunes = computed(() => {
     }))
 })
 
+// ── Helpers archives ──────────────────────────────────────────────────────────
+function archiveRows(surveyId: string): DemoRow[] {
+  return demoData.value.filter(r => r.survey_id === surveyId)
+}
+
+function archiveN(surveyId: string): number {
+  return archiveRows(surveyId).length
+}
+
+function archiveMargin(n: number): string | null {
+  if (n < 2) return null
+  return (Math.round((1 / Math.sqrt(n)) * 100 * 10) / 10).toFixed(1)
+}
+
+function archiveReliability(n: number): { label: string; cls: string } {
+  if (n >= 500) return { label: 'Représentatif ★', cls: 'text-emerald-400 bg-emerald-900/40' }
+  if (n >= 200) return { label: 'Fiable ✓',        cls: 'text-blue-400 bg-blue-900/40' }
+  if (n >= 50)  return { label: 'Tendance 📊',     cls: 'text-amber-400 bg-amber-900/40' }
+  return              { label: 'Indicatif 🌱',    cls: 'text-gray-400 bg-gray-800' }
+}
+
+function archiveOptions(survey: any, surveyId: string): { label: string; count: number; pct: number }[] {
+  const opts: string[] = survey?.questions?.[0]?.options ?? []
+  if (!opts.length) return []
+  const rows = archiveRows(surveyId)
+  const n = rows.length
+  const counts: Record<string, number> = {}
+  opts.forEach(o => { counts[o] = 0 })
+  for (const r of rows) {
+    const ans = r.answers?.q1 as string | undefined
+    if (ans && ans in counts) counts[ans]++
+  }
+  return opts.map(o => ({
+    label: o,
+    count: counts[o],
+    pct: n > 0 ? Math.round(counts[o] / n * 100) : 0,
+  }))
+}
+
+function archiveDemoTop(surveyId: string, key: 'gender' | 'age_group' | 'commune'): string {
+  const rows = archiveRows(surveyId)
+  const counts: Record<string, number> = {}
+  for (const r of rows) {
+    const v = r.demographics?.[key]
+    if (v) counts[v] = (counts[v] ?? 0) + 1
+  }
+  const entries = Object.entries(counts)
+  if (!entries.length) return '—'
+  const top = entries.reduce((a, b) => b[1] > a[1] ? b : a)[0]
+  if (key === 'gender') {
+    const labels: Record<string, string> = { homme: 'Homme', femme: 'Femme', autre: 'Autre' }
+    return labels[top] ?? top
+  }
+  return top
+}
+
+function archiveCommuneBreakdown(surveyId: string) {
+  const rows = archiveRows(surveyId)
+  const n = rows.length
+  const counts: Record<string, number> = {}
+  for (const r of rows) {
+    const c = r.demographics?.commune
+    if (c) counts[c] = (counts[c] ?? 0) + 1
+  }
+  return Object.entries(counts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 8)
+    .map(([name, count]) => {
+      const code = NOM_TO_CODE[name]
+      const pop = code ? COMMUNE_POPULATION[code] : undefined
+      const popPct = pop && pop > 0 ? (count / pop * 100) : null
+      return {
+        name,
+        count,
+        pct: n > 0 ? Math.round(count / n * 100) : 0,
+        popPct,
+      }
+    })
+}
+
 // ── Montage ───────────────────────────────────────────────────────────────────
 onMounted(async () => {
-  if (storedToken.value) {
-    await authenticate(storedToken.value)
-  }
+  if (storedToken.value) await authenticate(storedToken.value)
 })
 
 watch(isAuthenticated, async (v) => {
@@ -264,8 +346,8 @@ watch(isAuthenticated, async (v) => {
 </script>
 
 <template>
-  <!-- ── ÉCRAN DE BLOCAGE ─────────────────────────────────────────────────── -->
-  <div v-if="!isAuthenticated" class="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
+  <!-- ── ÉCRAN DE BLOCAGE ──────────────────────────────────────────────────── -->
+  <div v-if="!isAuthenticated" class="min-h-dvh bg-[#0a0a0a] flex items-center justify-center">
     <div class="w-full max-w-sm px-6">
       <div class="mb-8 text-center">
         <div class="text-3xl mb-3">🔒</div>
@@ -285,21 +367,19 @@ watch(isAuthenticated, async (v) => {
           class="w-full py-3 rounded-xl bg-[#10b981] text-white font-semibold text-sm hover:bg-emerald-400 transition disabled:opacity-40"
           :disabled="authLoading || !passwordInput"
           @click="authenticate(passwordInput)"
-        >
-          {{ authLoading ? 'Vérification…' : 'Entrer' }}
-        </button>
+        >{{ authLoading ? 'Vérification…' : 'Entrer' }}</button>
       </div>
     </div>
   </div>
 
-  <!-- ── DASHBOARD ────────────────────────────────────────────────────────── -->
-  <div v-else class="min-h-screen bg-[#0a0a0a] text-white">
+  <!-- ── DASHBOARD ─────────────────────────────────────────────────────────── -->
+  <div v-else class="min-h-dvh bg-[#0a0a0a] text-white">
 
-    <!-- Header -->
-    <div class="border-b border-[#1a1a1a] px-6 py-4 flex items-center gap-4">
+    <!-- Header sticky -->
+    <div class="sticky top-0 z-10 border-b border-[#1a1a1a] px-4 lg:px-6 py-4 flex items-center gap-4 bg-[#0a0a0a]">
       <span class="text-lg font-bold tracking-tight">Péyi <span class="text-[#10b981]">Admin</span></span>
       <span class="text-[#2a2a2a]">|</span>
-      <span class="text-gray-500 text-sm">{{ new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) }}</span>
+      <span class="hidden sm:inline text-gray-500 text-sm">{{ new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) }}</span>
       <span class="ml-auto flex items-center gap-2">
         <span class="w-2 h-2 rounded-full bg-[#10b981] animate-pulse"></span>
         <span class="text-xs text-gray-500">En ligne</span>
@@ -312,13 +392,11 @@ watch(isAuthenticated, async (v) => {
         v-if="toast"
         class="fixed top-4 right-4 z-50 px-5 py-3 rounded-xl text-sm font-medium shadow-2xl"
         :class="toast.type === 'success' ? 'bg-[#10b981] text-white' : 'bg-red-500 text-white'"
-      >
-        {{ toast.msg }}
-      </div>
+      >{{ toast.msg }}</div>
     </transition>
 
     <!-- Stats bar -->
-    <div class="border-b border-[#1a1a1a] px-6 py-3 flex items-center gap-6 overflow-x-auto bg-[#0d0d0d]">
+    <div class="border-b border-[#1a1a1a] px-4 lg:px-6 py-3 flex items-center gap-4 lg:gap-6 overflow-x-auto bg-[#0d0d0d]">
       <div class="flex items-center gap-2 shrink-0">
         <span class="text-[#10b981] text-lg font-bold">{{ totalRespondents }}</span>
         <span class="text-gray-600 text-xs">répondants totaux</span>
@@ -326,7 +404,7 @@ watch(isAuthenticated, async (v) => {
       <div class="w-px h-4 bg-[#1a1a1a] shrink-0" />
       <div class="flex items-center gap-2 shrink-0">
         <span class="text-white text-lg font-bold">{{ activeSurveys.length }}</span>
-        <span class="text-gray-600 text-xs">sondages actifs</span>
+        <span class="text-gray-600 text-xs">actifs</span>
       </div>
       <div class="w-px h-4 bg-[#1a1a1a] shrink-0" />
       <div class="flex items-center gap-2 shrink-0">
@@ -339,21 +417,36 @@ watch(isAuthenticated, async (v) => {
         <span class="text-gray-600 text-xs">18–34 ans</span>
       </div>
       <div class="ml-auto shrink-0">
-        <button
-          class="text-xs text-gray-600 hover:text-[#10b981] transition"
-          @click="loadDemographics"
-        >↻ Actualiser</button>
+        <button class="text-xs text-gray-600 hover:text-[#10b981] transition" @click="loadDemographics">↻ Actualiser</button>
       </div>
     </div>
 
-    <!-- Corps : 2 colonnes -->
-    <div class="flex flex-col lg:flex-row gap-0 min-h-[calc(100vh-61px)]">
+    <!-- Onglets -->
+    <div class="flex border-b border-[#1a1a1a] px-4 lg:px-6 bg-[#0a0a0a]">
+      <button
+        class="px-4 py-3 text-sm font-medium border-b-2 transition"
+        :class="activeTab === 'active'
+          ? 'border-[#10b981] text-[#10b981]'
+          : 'border-transparent text-gray-500 hover:text-gray-300'"
+        @click="activeTab = 'active'"
+      >Sondages actifs</button>
+      <button
+        class="px-4 py-3 text-sm font-medium border-b-2 transition"
+        :class="activeTab === 'archives'
+          ? 'border-[#10b981] text-[#10b981]'
+          : 'border-transparent text-gray-500 hover:text-gray-300'"
+        @click="activeTab = 'archives'"
+      >Archives</button>
+    </div>
 
-      <!-- ── COLONNE GAUCHE : Formulaire (60%) ──────────────────────────── -->
-      <div class="lg:w-[60%] border-r border-[#1a1a1a] px-6 py-6 space-y-6 lg:overflow-y-auto lg:max-h-[calc(100vh-61px)]">
+    <!-- ══ ONGLET SONDAGES ACTIFS ═══════════════════════════════════════════ -->
+    <div v-if="activeTab === 'active'" class="flex flex-col lg:flex-row pb-24">
+
+      <!-- Colonne gauche : Formulaire -->
+      <div class="lg:w-[60%] border-r border-[#1a1a1a] px-4 lg:px-6 py-6 space-y-6">
         <h2 class="text-xs font-semibold text-gray-500 uppercase tracking-widest">Nouveau sondage</h2>
 
-        <!-- Champ 1 : Titre -->
+        <!-- Question -->
         <div>
           <label class="text-xs text-gray-400 mb-2 block">Question citoyenne</label>
           <div class="relative">
@@ -364,13 +457,11 @@ watch(isAuthenticated, async (v) => {
               rows="3"
               class="w-full bg-[#111] border border-[#222] rounded-xl px-4 py-3 text-white text-sm placeholder-gray-600 focus:border-[#10b981] outline-none resize-none transition"
             />
-            <span class="absolute bottom-3 right-3 text-xs" :class="title.length > 100 ? 'text-amber-400' : 'text-gray-600'">
-              {{ title.length }}/120
-            </span>
+            <span class="absolute bottom-3 right-3 text-xs" :class="title.length > 100 ? 'text-amber-400' : 'text-gray-600'">{{ title.length }}/120</span>
           </div>
         </div>
 
-        <!-- Champ 2 : Scope -->
+        <!-- Scope -->
         <div>
           <label class="text-xs text-gray-400 mb-2 block">Portée du sondage</label>
           <div class="grid grid-cols-2 gap-2">
@@ -392,16 +483,16 @@ watch(isAuthenticated, async (v) => {
           </div>
         </div>
 
-        <!-- Champ 4 : Type de réponse -->
+        <!-- Type de réponse -->
         <div>
           <label class="text-xs text-gray-400 mb-2 block">Type de réponse</label>
           <div class="grid grid-cols-2 gap-2">
             <button
               v-for="opt in [
-                { value: 'yesno', icon: '👍', label: 'Oui / Non', preview: 'Oui   Non' },
-                { value: 'scale5', icon: '⭐', label: 'Échelle 1 à 5', preview: '1 · 2 · 3 · 4 · 5' },
-                { value: 'multiple', icon: '📋', label: 'Choix multiples', preview: 'A / B / C…' },
-                { value: 'scale10', icon: '🔢', label: 'Note 1 à 10', preview: '1 ·· 5 ·· 10' },
+                { value: 'yesno',   icon: '👍', label: 'Oui / Non',      preview: 'Oui   Non' },
+                { value: 'scale5',  icon: '⭐', label: 'Échelle 1 à 5',  preview: '1 · 2 · 3 · 4 · 5' },
+                { value: 'multiple',icon: '📋', label: 'Choix multiples', preview: 'A / B / C…' },
+                { value: 'scale10', icon: '🔢', label: 'Note 1 à 10',    preview: '1 ·· 5 ·· 10' },
               ]"
               :key="opt.value"
               class="flex flex-col gap-1.5 px-4 py-3 rounded-xl border text-left transition"
@@ -419,7 +510,7 @@ watch(isAuthenticated, async (v) => {
           </div>
         </div>
 
-        <!-- Champ 5 : Options (si choix multiples) -->
+        <!-- Options (choix multiples) -->
         <div v-if="answerType === 'multiple'">
           <label class="text-xs text-gray-400 mb-2 block">Options de réponse</label>
           <div class="space-y-2">
@@ -431,31 +522,21 @@ watch(isAuthenticated, async (v) => {
                 :placeholder="`Option ${i + 1}…`"
                 class="flex-1 bg-[#111] border border-[#222] rounded-lg px-3 py-2 text-sm text-white placeholder-gray-600 focus:border-[#10b981] outline-none transition"
               />
-              <button
-                v-if="customOptions.length > 2"
-                class="text-gray-600 hover:text-red-400 transition text-sm"
-                @click="removeOption(i)"
-              >✕</button>
+              <button v-if="customOptions.length > 2" class="text-gray-600 hover:text-red-400 transition text-sm" @click="removeOption(i)">✕</button>
             </div>
           </div>
-          <button
-            v-if="customOptions.length < 6"
-            class="mt-2 text-xs text-[#10b981] hover:text-emerald-300 transition"
-            @click="addOption"
-          >+ Ajouter une option</button>
+          <button v-if="customOptions.length < 6" class="mt-2 text-xs text-[#10b981] hover:text-emerald-300 transition" @click="addOption">+ Ajouter une option</button>
         </div>
 
-        <!-- Champ 6 : Durée -->
+        <!-- Durée -->
         <div>
           <label class="text-xs text-gray-400 mb-2 block">Durée</label>
-          <div class="flex gap-2 mb-2">
+          <div class="flex gap-2 mb-2 flex-wrap">
             <button
               v-for="opt in [{ v: '48h', l: '48h' }, { v: '7d', l: '7 jours' }, { v: '30d', l: '30 jours' }, { v: 'custom', l: 'Personnalisé' }]"
               :key="opt.v"
               class="px-3 py-2 rounded-lg border text-xs font-medium transition"
-              :class="duration === opt.v
-                ? 'border-[#10b981] bg-[#10b981]/10 text-[#10b981]'
-                : 'border-[#222] bg-[#111] text-gray-400 hover:border-[#333]'"
+              :class="duration === opt.v ? 'border-[#10b981] bg-[#10b981]/10 text-[#10b981]' : 'border-[#222] bg-[#111] text-gray-400 hover:border-[#333]'"
               @click="duration = opt.v as any"
             >{{ opt.l }}</button>
           </div>
@@ -465,12 +546,10 @@ watch(isAuthenticated, async (v) => {
             type="datetime-local"
             class="w-full bg-[#111] border border-[#222] rounded-xl px-4 py-2.5 text-white text-sm focus:border-[#10b981] outline-none transition mb-2"
           />
-          <p v-if="endsAtLabel" class="text-xs text-gray-500">
-            Se terminera le <span class="text-gray-300">{{ endsAtLabel }}</span>
-          </p>
+          <p v-if="endsAtLabel" class="text-xs text-gray-500">Se terminera le <span class="text-gray-300">{{ endsAtLabel }}</span></p>
         </div>
 
-        <!-- Champ 7 : Contexte -->
+        <!-- Contexte -->
         <div>
           <label class="text-xs text-gray-400 mb-2 block">Contexte <span class="text-gray-600">(optionnel)</span></label>
           <div class="relative">
@@ -485,7 +564,7 @@ watch(isAuthenticated, async (v) => {
           </div>
         </div>
 
-        <!-- Bouton Publier -->
+        <!-- Publier -->
         <button
           class="w-full py-4 rounded-xl font-bold text-sm transition active:scale-[0.99] disabled:opacity-30 disabled:cursor-not-allowed"
           :class="publishing ? 'bg-[#10b981]/60 cursor-wait' : 'bg-[#10b981] hover:bg-emerald-400'"
@@ -503,170 +582,98 @@ watch(isAuthenticated, async (v) => {
         </button>
       </div>
 
-      <!-- ── COLONNE DROITE : Sondages actifs (40%) ─────────────────────── -->
-      <div class="lg:w-[40%] px-6 py-6 space-y-6 lg:overflow-y-auto lg:max-h-[calc(100vh-61px)]">
+      <!-- Colonne droite : Sondages actifs + démographie -->
+      <div class="lg:w-[40%] px-4 lg:px-6 py-6 space-y-6">
 
         <!-- Sondages actifs -->
         <div>
           <div class="flex items-center gap-2 mb-4">
             <h2 class="text-xs font-semibold text-gray-500 uppercase tracking-widest">Sondages actifs</h2>
-            <span class="text-xs font-bold px-2 py-0.5 rounded-full bg-[#10b981]/20 text-[#10b981]">
-              {{ activeSurveys.length }}
-            </span>
+            <span class="text-xs font-bold px-2 py-0.5 rounded-full bg-[#10b981]/20 text-[#10b981]">{{ activeSurveys.length }}</span>
           </div>
-
           <div v-if="surveysLoading" class="space-y-3">
             <div v-for="i in 2" :key="i" class="h-24 bg-[#111] rounded-xl animate-pulse" />
           </div>
-
           <div v-else-if="!activeSurveys.length" class="text-gray-600 text-sm text-center py-8 bg-[#111] rounded-xl border border-[#1a1a1a]">
             Aucun sondage actif
           </div>
-
           <div v-else class="space-y-3">
-            <div
-              v-for="s in activeSurveys"
-              :key="s.id"
-              class="bg-[#111] border border-[#1a1a1a] rounded-xl p-4"
-            >
-              <!-- Titre + badges -->
+            <div v-for="s in activeSurveys" :key="s.id" class="bg-[#111] border border-[#1a1a1a] rounded-xl p-4">
               <div class="flex items-start gap-2 mb-3">
                 <p class="flex-1 text-sm font-medium leading-snug line-clamp-2">{{ s.title }}</p>
-                <span class="shrink-0 text-xs px-1.5 py-0.5 rounded bg-[#1a1a1a] text-gray-400">
-                  {{ s.communes?.name ? `📍 ${s.communes.name}` : '🌍' }}
-                </span>
+                <span class="shrink-0 text-xs px-1.5 py-0.5 rounded bg-[#1a1a1a] text-gray-400">🌍</span>
               </div>
-
-              <!-- Stats -->
               <div class="flex items-center justify-between text-xs text-gray-500 mb-1.5">
                 <span><span class="text-white font-semibold">{{ s._count ?? 0 }}</span> répondants</span>
                 <span class="text-amber-400 font-medium">{{ timeLeft(s.ends_at) }}</span>
               </div>
               <div class="h-1 bg-[#1a1a1a] rounded-full overflow-hidden mb-3">
-                <div
-                  class="h-full bg-[#10b981] rounded-full transition-all"
-                  :style="{ width: progressPct(s._count ?? 0) + '%' }"
-                />
+                <div class="h-full bg-[#10b981] rounded-full transition-all" :style="{ width: progressPct(s._count ?? 0) + '%' }" />
               </div>
-
-              <!-- Actions -->
               <div class="flex items-center gap-2">
-                <a
-                  :href="`/sondages/${s.id}`"
-                  target="_blank"
-                  class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#1a1a1a] text-xs text-gray-300 hover:bg-[#222] transition"
-                >
+                <a :href="`/sondages/${s.id}`" target="_blank" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#1a1a1a] text-xs text-gray-300 hover:bg-[#222] transition">
                   👁️ Résultats
                 </a>
                 <button
                   v-if="confirmClose !== s.id"
                   class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#1a1a1a] text-xs text-red-400 hover:bg-red-900/30 transition"
                   @click="confirmClose = s.id"
-                >
-                  🔴 Clôturer
-                </button>
+                >🔴 Clôturer</button>
                 <template v-else>
-                  <button
-                    class="px-3 py-1.5 rounded-lg bg-red-600 text-xs text-white font-semibold hover:bg-red-500 transition"
-                    @click="closeSurvey(s.id)"
-                  >Confirmer</button>
-                  <button
-                    class="px-3 py-1.5 rounded-lg bg-[#1a1a1a] text-xs text-gray-400 hover:bg-[#222] transition"
-                    @click="confirmClose = null"
-                  >Annuler</button>
+                  <button class="px-3 py-1.5 rounded-lg bg-red-600 text-xs text-white font-semibold hover:bg-red-500 transition" @click="closeSurvey(s.id)">Confirmer</button>
+                  <button class="px-3 py-1.5 rounded-lg bg-[#1a1a1a] text-xs text-gray-400 hover:bg-[#222] transition" @click="confirmClose = null">Annuler</button>
                 </template>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- Derniers clôturés -->
-        <div>
-          <h2 class="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-3">Derniers clôturés</h2>
-          <div v-if="!closedSurveys.length" class="text-gray-600 text-xs text-center py-4">
-            Aucun sondage clôturé
-          </div>
-          <div v-else class="space-y-2">
-            <div
-              v-for="s in closedSurveys"
-              :key="s.id"
-              class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-[#111] border border-[#1a1a1a] hover:border-[#222] transition cursor-pointer"
-              @click="openResults(s.id)"
-            >
-              <div class="flex-1 min-w-0">
-                <p class="text-xs text-gray-300 leading-snug truncate">{{ s.title }}</p>
-                <p class="text-xs text-gray-600 mt-0.5">
-                  {{ s.ends_at ? new Date(s.ends_at).toLocaleDateString('fr-FR') : new Date(s.created_at).toLocaleDateString('fr-FR') }}
-                </p>
-              </div>
-              <span class="text-xs text-gray-600 shrink-0">CLOS</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- ── DÉMOGRAPHIE ──────────────────────────────────────────────────── -->
+        <!-- Démographie globale -->
         <div>
           <div class="flex items-center gap-2 mb-4">
-            <h2 class="text-xs font-semibold text-gray-500 uppercase tracking-widest">Démographie</h2>
+            <h2 class="text-xs font-semibold text-gray-500 uppercase tracking-widest">Démographie globale</h2>
             <span v-if="demoLoading" class="text-[10px] text-gray-600 animate-pulse">Chargement…</span>
-            <span v-else class="text-[10px] text-gray-600">{{ demoData.length }} réponses analysées</span>
+            <span v-else class="text-[10px] text-gray-600">{{ demoData.length }} réponses</span>
           </div>
 
           <div v-if="!demoLoading && demoData.length" class="space-y-5">
-
-            <!-- Genre -->
             <div>
               <p class="text-[10px] text-gray-600 uppercase tracking-wider mb-2">Genre</p>
               <div class="space-y-1.5">
                 <div v-for="g in genders" :key="g.val" class="flex items-center gap-2">
                   <span class="text-[11px] text-gray-400 w-20 shrink-0">{{ g.label }}</span>
                   <div class="flex-1 h-1.5 bg-[#1a1a1a] rounded-full overflow-hidden">
-                    <div
-                      class="h-full bg-[#10b981] rounded-full transition-all duration-700"
-                      :style="{ width: demoPercent('gender', g.val) + '%' }"
-                    />
+                    <div class="h-full bg-[#10b981] rounded-full" :style="{ width: demoPercent('gender', g.val) + '%' }" />
                   </div>
                   <span class="text-[11px] text-gray-500 w-8 text-right shrink-0">{{ demoPercent('gender', g.val) }}%</span>
                 </div>
               </div>
             </div>
-
-            <!-- Âge -->
             <div>
               <p class="text-[10px] text-gray-600 uppercase tracking-wider mb-2">Tranches d'âge</p>
               <div class="space-y-1.5">
                 <div v-for="ag in ageGroups" :key="ag" class="flex items-center gap-2">
                   <span class="text-[11px] text-gray-400 w-14 shrink-0">{{ ag }}</span>
                   <div class="flex-1 h-1.5 bg-[#1a1a1a] rounded-full overflow-hidden">
-                    <div
-                      class="h-full bg-amber-400 rounded-full transition-all duration-700"
-                      :style="{ width: demoPercent('age_group', ag) + '%' }"
-                    />
+                    <div class="h-full bg-amber-400 rounded-full" :style="{ width: demoPercent('age_group', ag) + '%' }" />
                   </div>
                   <span class="text-[11px] text-gray-500 w-8 text-right shrink-0">{{ demoPercent('age_group', ag) }}%</span>
                 </div>
               </div>
             </div>
-
-            <!-- Top communes -->
             <div v-if="topCommunes.length">
               <p class="text-[10px] text-gray-600 uppercase tracking-wider mb-2">Top communes</p>
               <div class="space-y-1.5">
                 <div v-for="c in topCommunes" :key="c.name" class="flex items-center gap-2">
                   <span class="text-[11px] text-gray-400 w-28 shrink-0 truncate">{{ c.name }}</span>
                   <div class="flex-1 h-1.5 bg-[#1a1a1a] rounded-full overflow-hidden">
-                    <div
-                      class="h-full bg-blue-500 rounded-full transition-all duration-700"
-                      :style="{ width: c.pct + '%' }"
-                    />
+                    <div class="h-full bg-blue-500 rounded-full" :style="{ width: c.pct + '%' }" />
                   </div>
                   <span class="text-[11px] text-gray-500 w-8 text-right shrink-0">{{ c.pct }}%</span>
                 </div>
               </div>
             </div>
-
           </div>
-
           <div v-else-if="!demoLoading" class="text-gray-600 text-xs text-center py-6 bg-[#111] rounded-xl border border-[#1a1a1a]">
             Aucune donnée démographique
           </div>
@@ -674,15 +681,124 @@ watch(isAuthenticated, async (v) => {
 
       </div>
     </div>
+
+    <!-- ══ ONGLET ARCHIVES ═══════════════════════════════════════════════════ -->
+    <div v-else class="px-4 lg:px-6 py-6 pb-24 max-w-4xl">
+      <h2 class="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-5">Sondages clôturés — {{ closedSurveys.length }} archives</h2>
+
+      <div v-if="surveysLoading" class="space-y-4">
+        <div v-for="i in 3" :key="i" class="h-40 bg-[#111] rounded-xl animate-pulse" />
+      </div>
+
+      <div v-else-if="!closedSurveys.length" class="text-gray-600 text-sm text-center py-16 bg-[#111] rounded-xl border border-[#1a1a1a]">
+        Aucun sondage archivé
+      </div>
+
+      <div v-else class="space-y-4">
+        <div v-for="s in closedSurveys" :key="s.id" class="bg-[#111] border border-[#1a1a1a] rounded-xl p-5">
+
+          <!-- Ligne 1 : badge + date -->
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-gray-700 text-gray-300 uppercase tracking-wider">CLÔTURÉ</span>
+            <span class="text-gray-400 text-xs">{{ fmtDate(s.ends_at ?? s.created_at) }}</span>
+          </div>
+
+          <!-- Titre -->
+          <p class="text-white font-medium text-base leading-snug mt-2">{{ s.title }}</p>
+
+          <!-- Période -->
+          <p class="text-gray-400 text-xs mt-1">Du {{ fmtDate(s.created_at) }} au {{ fmtDate(s.ends_at) }}</p>
+
+          <!-- Stats -->
+          <div class="flex items-center gap-3 mt-3 flex-wrap">
+            <span class="text-[#10b981] font-bold text-sm">{{ archiveN(s.id) }} répondants</span>
+            <span v-if="archiveMargin(archiveN(s.id))" class="text-gray-500 text-xs">± {{ archiveMargin(archiveN(s.id)) }}%</span>
+            <span
+              class="text-[10px] font-semibold px-2 py-0.5 rounded-full"
+              :class="archiveReliability(archiveN(s.id)).cls"
+            >{{ archiveReliability(archiveN(s.id)).label }}</span>
+          </div>
+
+          <!-- Résultats par option -->
+          <div class="mt-4 space-y-2">
+            <div v-if="!archiveN(s.id)" class="text-gray-600 text-xs italic">Aucune réponse collectée</div>
+            <template v-else>
+              <div
+                v-for="opt in archiveOptions(s, s.id)"
+                :key="opt.label"
+                class="space-y-1"
+              >
+                <div class="flex justify-between items-center">
+                  <span
+                    class="text-xs"
+                    :class="opt.pct === Math.max(...archiveOptions(s, s.id).map(o => o.pct)) && opt.pct > 0
+                      ? 'text-white font-semibold'
+                      : 'text-gray-400'"
+                  >{{ opt.label }}</span>
+                  <span
+                    class="text-xs font-bold"
+                    :class="opt.pct === Math.max(...archiveOptions(s, s.id).map(o => o.pct)) && opt.pct > 0
+                      ? 'text-[#10b981]'
+                      : 'text-gray-500'"
+                  >{{ opt.pct }}%</span>
+                </div>
+                <div class="h-1.5 bg-gray-700 rounded-full overflow-hidden">
+                  <div
+                    class="h-full rounded-full transition-all duration-700"
+                    :class="opt.pct === Math.max(...archiveOptions(s, s.id).map(o => o.pct)) && opt.pct > 0
+                      ? 'bg-emerald-400'
+                      : 'bg-emerald-700'"
+                    :style="{ width: opt.pct + '%' }"
+                  />
+                </div>
+              </div>
+            </template>
+          </div>
+
+          <!-- Ventilation démographique -->
+          <div class="mt-4 grid grid-cols-3 gap-3 border-t border-[#1a1a1a] pt-4">
+            <div class="text-center">
+              <p class="text-white text-sm font-medium">{{ archiveDemoTop(s.id, 'gender') }}</p>
+              <p class="text-gray-500 text-[10px] uppercase mt-0.5">Genre</p>
+            </div>
+            <div class="text-center">
+              <p class="text-white text-sm font-medium">{{ archiveDemoTop(s.id, 'age_group') }}</p>
+              <p class="text-gray-500 text-[10px] uppercase mt-0.5">Âge dominant</p>
+            </div>
+            <div class="text-center">
+              <p class="text-white text-sm font-medium truncate">{{ archiveDemoTop(s.id, 'commune') }}</p>
+              <p class="text-gray-500 text-[10px] uppercase mt-0.5">Top commune</p>
+            </div>
+          </div>
+
+          <!-- Communes -->
+          <div v-if="archiveCommuneBreakdown(s.id).length" class="mt-4 border-t border-[#1a1a1a] pt-4">
+            <p class="text-[10px] text-gray-600 uppercase tracking-wider mb-2">Participation par commune</p>
+            <div class="space-y-1">
+              <div v-for="c in archiveCommuneBreakdown(s.id)" :key="c.name" class="flex items-center gap-2">
+                <span class="text-[11px] text-gray-400 w-28 shrink-0 truncate">{{ c.name }}</span>
+                <span class="text-[10px] text-gray-600 shrink-0 w-8 text-right">{{ c.count }}</span>
+                <span v-if="c.popPct !== null" class="text-[10px] text-gray-600 shrink-0 w-14 text-right">
+                  {{ c.popPct < 0.01 ? '< 0.01%' : c.popPct.toFixed(2) + '% pop.' }}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Lien résultats publics -->
+          <div class="mt-4 pt-3 border-t border-[#1a1a1a]">
+            <button class="text-[#10b981] text-sm underline hover:text-emerald-300 transition" @click="openResults(s.id)">
+              Voir les résultats publics →
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
   </div>
 </template>
 
 <style scoped>
-.slide-toast-enter-active, .slide-toast-leave-active {
-  transition: all 0.3s ease;
-}
-.slide-toast-enter-from, .slide-toast-leave-to {
-  opacity: 0;
-  transform: translateY(-8px);
-}
+.slide-toast-enter-active, .slide-toast-leave-active { transition: all 0.3s ease; }
+.slide-toast-enter-from, .slide-toast-leave-to { opacity: 0; transform: translateY(-8px); }
 </style>

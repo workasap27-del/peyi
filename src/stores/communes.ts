@@ -3,6 +3,8 @@ import { ref, computed } from 'vue'
 import type { CommuneStat } from '@/data/communeStats'
 import { COMMUNE_DATA, NOM_TO_CODE, participationColor, circleRadius } from '@/data/communeStats'
 
+const TTL_MS = 5 * 60 * 1000 // 5 minutes
+
 export const useCommunesStore = defineStore('communes', () => {
   /** Participation counts fetched from Supabase (commune displayName → count) */
   const remoteCounts = ref<Record<string, number>>({})
@@ -10,6 +12,7 @@ export const useCommunesStore = defineStore('communes', () => {
   const activeSurveyCounts = ref<Record<string, number>>({})
   const loaded = ref(false)
   const loading = ref(false)
+  const lastFetchedAt = ref<number | null>(null)
   /** Code INSEE de la commune à animer (pulse vert) après soumission */
   const pulseCode = ref<string | null>(null)
   /** Maximum participation count across all communes (for relative coloring) */
@@ -17,6 +20,8 @@ export const useCommunesStore = defineStore('communes', () => {
 
   async function loadParticipation() {
     if (loading.value) return
+    // Skip if data is fresh (< 5 min old)
+    if (lastFetchedAt.value && Date.now() - lastFetchedAt.value < TTL_MS && loaded.value) return
     loading.value = true
     try {
       const { fetchParticipationByCommune, fetchActiveSurveysCountByCommune } = await import('@/services/communesService')
@@ -33,6 +38,7 @@ export const useCommunesStore = defineStore('communes', () => {
       // Compute maxCount for relative participation thresholds
       const counts = Object.values(participation)
       maxCount.value = counts.length > 0 ? Math.max(...counts) : 0
+      lastFetchedAt.value = Date.now()
     } catch {
       // Silently fall back to zero remote counts
     } finally {

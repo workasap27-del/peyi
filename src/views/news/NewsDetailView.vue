@@ -24,7 +24,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="max-w-3xl mx-auto px-4 py-8">
+  <div class="min-h-dvh max-w-3xl mx-auto px-4 py-8 pb-24">
     <button class="text-sm text-gray-500 hover:text-gray-800 mb-6 flex items-center gap-1" @click="router.back()">
       ← Retour
     </button>

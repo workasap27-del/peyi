@@ -4,7 +4,7 @@ const router = useRouter()
 </script>
 
 <template>
-  <div class="min-h-screen bg-gray-950 flex flex-col pb-24">
+  <div class="min-h-dvh bg-gray-950 flex flex-col pb-24">
 
     <!-- Header -->
     <div class="px-6 pt-10 pb-6">

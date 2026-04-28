@@ -106,7 +106,7 @@ const closedSurveys = computed(() =>
 </script>
 
 <template>
-  <div class="min-h-screen bg-gray-50 pb-24">
+  <div class="min-h-dvh bg-gray-50 pb-24">
 
     <!-- ── EN-TÊTE ──────────────────────────────────────────────────────────── -->
     <div class="bg-white px-4 pt-6 pb-4 border-b border-gray-100">

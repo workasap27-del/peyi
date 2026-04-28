@@ -8,7 +8,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const LIMIT = 2000
   const { data, error } = await supabase
     .from('survey_responses')
-    .select('demographics, respondent_id, survey_id')
+    .select('demographics, respondent_id, survey_id, answers')
     .limit(LIMIT)
   if (error) return res.status(500).json({ error: error.message })
   if (data && data.length >= LIMIT) res.setHeader('X-Total-Limited', 'true')

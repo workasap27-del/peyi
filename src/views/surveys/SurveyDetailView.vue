@@ -116,11 +116,11 @@ function goParticipate() {
 </script>
 
 <template>
-  <div v-if="loading" class="flex items-center justify-center min-h-screen pb-24 bg-gray-50">
+  <div v-if="loading" class="flex items-center justify-center min-h-dvh pb-24 bg-gray-50">
     <div class="text-gray-400 text-sm">Chargement…</div>
   </div>
 
-  <div v-else-if="!survey" class="flex items-center justify-center min-h-screen pb-24 bg-gray-50">
+  <div v-else-if="!survey" class="flex items-center justify-center min-h-dvh pb-24 bg-gray-50">
     <div class="text-center px-6">
       <div class="text-4xl mb-4">🔍</div>
       <p class="text-gray-700 font-semibold mb-1">Sondage introuvable</p>
@@ -128,7 +128,7 @@ function goParticipate() {
     </div>
   </div>
 
-  <div v-else class="min-h-screen bg-gray-50 pb-28">
+  <div v-else class="min-h-dvh bg-gray-50 pb-28">
 
     <!-- ── Section 1 : Header ─────────────────────────────────────────────── -->
     <div class="bg-white px-4 pt-6 pb-4">

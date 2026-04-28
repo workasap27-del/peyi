@@ -5,19 +5,25 @@ import { mockSurveys, mockResponses } from '@/data/mockSurveys'
 import { getOrCreateRespondentId } from '@/lib/utils'
 import { supabase } from '@/services/supabase'
 
+const TTL_MS = 5 * 60 * 1000 // 5 minutes
+
 export const useSurveysStore = defineStore('surveys', () => {
   const surveys = ref<Survey[]>([])
   const loading = ref(false)
   const error = ref<string | null>(null)
+  const lastFetchedAt = ref<number | null>(null)
 
   // Responses from Supabase + any new local submissions this session
   const remoteResponses = ref<SurveyResponse[]>([])
   const localSubmissions = ref<SurveyResponse[]>([])
   const answeredIds = ref<Set<string>>(new Set())
+  const loadedSurveyIds = ref<Set<string>>(new Set())
 
   const allResponses = () => [...remoteResponses.value, ...localSubmissions.value]
 
   async function loadSurveys(_commune_id?: string) {
+    // Skip if data is fresh (< 5 min old)
+    if (lastFetchedAt.value && Date.now() - lastFetchedAt.value < TTL_MS && surveys.value.length) return
     loading.value = true
     error.value = null
     try {
@@ -32,6 +38,7 @@ export const useSurveysStore = defineStore('surveys', () => {
       if (err) throw err
       // Use Supabase data if surveys exist, else fall back to mock (demo mode)
       surveys.value = data?.length ? (data as Survey[]) : mockSurveys
+      lastFetchedAt.value = Date.now()
     } catch {
       surveys.value = mockSurveys
       error.value = 'Mode démo — connexion Supabase indisponible'
@@ -41,6 +48,8 @@ export const useSurveysStore = defineStore('surveys', () => {
   }
 
   async function loadResponses(survey_id: string) {
+    // Skip if already loaded for this survey this session
+    if (loadedSurveyIds.value.has(survey_id)) return
     try {
       const { supabase } = await import('@/services/supabase')
       const { data } = await supabase
@@ -62,6 +71,7 @@ export const useSurveysStore = defineStore('surveys', () => {
           if (!existingIds.has(r.id)) remoteResponses.value.push(r)
         }
       }
+      loadedSurveyIds.value.add(survey_id)
     } catch {
       // On error, seed with mock responses so results charts are not empty
       const mocks = mockResponses.filter(r => r.survey_id === survey_id)
@@ -69,6 +79,7 @@ export const useSurveysStore = defineStore('surveys', () => {
       for (const r of mocks) {
         if (!existingIds.has(r.id)) remoteResponses.value.push(r)
       }
+      loadedSurveyIds.value.add(survey_id)
     }
   }
 

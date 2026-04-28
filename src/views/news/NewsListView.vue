@@ -61,7 +61,7 @@ function formatDate(d: string): string {
 </script>
 
 <template>
-  <div class="max-w-4xl mx-auto px-4 py-8">
+  <div class="min-h-dvh max-w-4xl mx-auto px-4 py-8 pb-24">
     <div class="mb-6">
       <h1 class="text-2xl font-bold">📰 Actualités</h1>
       <p class="text-gray-500 text-sm mt-1">
