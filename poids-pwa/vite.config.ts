@@ -3,13 +3,7 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
-// Base path this app is served from. '/' for its own standalone Vercel
-// deployment, '/poids/' when embedded as a sub-route of the main Péyi
-// deployment (set by the root build script — see ../scripts/build-poids.mjs).
-const base = process.env.VITE_BASE_PATH || '/'
-
 export default defineConfig({
-  base,
   plugins: [
     react(),
     tailwindcss(),
@@ -25,8 +19,8 @@ export default defineConfig({
         background_color: '#0f172a',
         display: 'standalone',
         orientation: 'portrait',
-        start_url: base,
-        scope: base,
+        start_url: '/',
+        scope: '/',
         icons: [
           { src: 'pwa-192.png', sizes: '192x192', type: 'image/png' },
           { src: 'pwa-512.png', sizes: '512x512', type: 'image/png' },

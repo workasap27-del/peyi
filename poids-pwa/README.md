@@ -40,7 +40,6 @@ Export des données au format JSON disponible dans Réglages.
 
 ## Déploiement
 
-Sert `/` par défaut (déploiement autonome, voir `vercel.json` dans ce dossier).
-Peut aussi être servi sous `/poids/` en étant intégré au build du dépôt racine
-(`npm run build:poids` à la racine, ou `VITE_BASE_PATH=/poids/ npm run build`
-ici) — voir `../DEPLOY.md` pour les deux options de déploiement Vercel.
+Projet Vercel séparé et autonome (voir `vercel.json` dans ce dossier et
+`../DEPLOY.md`) : Root Directory = `poids-pwa` dans les paramètres du projet
+Vercel, tout le reste (build/install/output) est auto-détecté.
