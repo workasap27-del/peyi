@@ -37,3 +37,10 @@ npm run preview   # prévisualiser le build
   prévisionnelle d'atteinte de l'objectif à chaque saisie.
 
 Export des données au format JSON disponible dans Réglages.
+
+## Déploiement
+
+Sert `/` par défaut (déploiement autonome, voir `vercel.json` dans ce dossier).
+Peut aussi être servi sous `/poids/` en étant intégré au build du dépôt racine
+(`npm run build:poids` à la racine, ou `VITE_BASE_PATH=/poids/ npm run build`
+ici) — voir `../DEPLOY.md` pour les deux options de déploiement Vercel.

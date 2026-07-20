@@ -87,6 +87,44 @@ Les Pull Requests génèrent des URL de preview isolées.
 
 ---
 
+## Sous-app "Poids" (poids-pwa)
+
+Le dossier `poids-pwa/` est une PWA indépendante (suivi de poids), qui peut être
+servie de deux façons :
+
+### Option A — Intégrée au déploiement Péyi existant, sous `/poids`
+
+Rien à configurer côté Vercel : `npm run build` à la racine construit d'abord
+l'app Péyi, puis build automatiquement `poids-pwa` (base path `/poids/`) et
+copie son résultat dans `dist/poids/` (voir `scripts/build-poids.mjs`).
+Le fichier `vercel.json` racine route `/poids/(.*)` vers `dist/poids/index.html`
+avant le fallback SPA général. Chaque déploiement de `peyi.vercel.app` sert
+donc aussi `peyi.vercel.app/poids`.
+
+Pour vérifier en local avant de déployer (simule les rewrites Vercel) :
+
+```bash
+npm run build
+npm run preview:merged   # http://localhost:4173  et  http://localhost:4173/poids
+```
+
+### Option B — Déploiement Vercel séparé, dédié
+
+Pour une URL propre (`poids-peyi.vercel.app` ou domaine dédié), créer un
+**second projet Vercel** pointant sur ce même repo GitHub :
+
+1. Vercel Dashboard → **Add New Project** → importer `peyi` à nouveau
+2. **Root Directory** : `poids-pwa` (au lieu de `.`)
+3. **Framework Preset** : Vite (auto-détecté)
+4. Build/Install/Output : valeurs par défaut (`npm run build`, `npm install`, `dist`)
+5. Aucune variable d'environnement requise (données 100 % locales, pas de Supabase)
+6. Déployer
+
+`poids-pwa/vercel.json` gère déjà le rewrite SPA nécessaire pour ce projet
+autonome (base path `/`, indépendant de l'option A).
+
+---
+
 ## Seed Supabase (à faire une fois avant le premier lancement)
 
 Avant d'ouvrir l'app au public, exécute dans le **SQL Editor** de ton dashboard Supabase :

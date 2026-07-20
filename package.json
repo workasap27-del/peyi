@@ -5,8 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vue-tsc --noEmit && vite build",
+    "build": "vue-tsc --noEmit && vite build && node scripts/build-poids.mjs",
+    "build:app": "vue-tsc --noEmit && vite build",
+    "build:poids": "node scripts/build-poids.mjs",
     "preview": "vite preview",
+    "preview:merged": "node scripts/preview-server.mjs",
     "typecheck": "vue-tsc --noEmit",
     "lint": "eslint . --ext .vue,.js,.ts --fix",
     "test": "vitest",
