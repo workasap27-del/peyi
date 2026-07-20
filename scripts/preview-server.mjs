@@ -2,16 +2,25 @@
 // the merged dist/ output (main app + /poids sub-route) before deploying.
 import { createServer } from 'node:http'
 import { readFile } from 'node:fs/promises'
-import { existsSync } from 'node:fs'
+import { statSync } from 'node:fs'
 import { extname, join } from 'node:path'
 
 const root = join(process.cwd(), 'dist')
 const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.webmanifest': 'application/manifest+json', '.ico': 'image/x-icon', '.png': 'image/png', '.svg': 'image/svg+xml' }
 
+function isFile(path) {
+  try {
+    return statSync(path).isFile()
+  } catch {
+    return false
+  }
+}
+
+// Mirrors vercel.json's rewrite order: static files win, then /poids(/*) -> poids/index.html, then catch-all.
 function resolvePath(urlPath) {
   const filePath = join(root, decodeURIComponent(urlPath))
-  if (existsSync(filePath) && !filePath.endsWith('/')) return filePath
-  if (urlPath.startsWith('/poids/')) return join(root, 'poids', 'index.html')
+  if (isFile(filePath)) return filePath
+  if (urlPath === '/poids' || urlPath.startsWith('/poids/')) return join(root, 'poids', 'index.html')
   return join(root, 'index.html')
 }
 
